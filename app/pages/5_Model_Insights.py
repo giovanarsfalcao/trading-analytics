@@ -19,7 +19,7 @@ import plotly.graph_objects as go
 st.header("Model Insights")
 st.caption("Machine learning models for price prediction — OLS trend forecasting and logistic regression signal classification.")
 
-ticker = (st.session_state.get("global_ticker") or "SPY").strip().upper()
+ticker = (st.session_state.get("global_ticker") or "AAPL").strip().upper()
 
 # --- Sidebar ---
 with st.sidebar:

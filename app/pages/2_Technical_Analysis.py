@@ -13,7 +13,7 @@ from components.charts import indicator_subplot
 st.header("Technical Analysis")
 st.caption("Chart-based momentum and trend indicators — identify patterns, overbought/oversold zones, and volatility breakouts.")
 
-ticker = (st.session_state.get("global_ticker") or "SPY").strip().upper()
+ticker = (st.session_state.get("global_ticker") or "AAPL").strip().upper()
 
 # --- Sidebar ---
 with st.sidebar:

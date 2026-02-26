@@ -26,7 +26,7 @@ with st.expander("⚠️ Disclaimer", expanded=True):
         "Always conduct your own research before making investment decisions."
     )
 
-ticker = (st.session_state.get("global_ticker") or "SPY").strip().upper()
+ticker = (st.session_state.get("global_ticker") or "AAPL").strip().upper()
 
 
 def gauge_chart(score, title, height=220):
