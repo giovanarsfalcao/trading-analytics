@@ -16,7 +16,7 @@ from components.kpi_cards import render_metric_table
 
 st.header("Backtesting")
 
-ticker = st.session_state.get("global_ticker", "SPY").strip().upper()
+ticker = (st.session_state.get("global_ticker") or "SPY").strip().upper()
 
 # --- Sidebar ---
 with st.sidebar:

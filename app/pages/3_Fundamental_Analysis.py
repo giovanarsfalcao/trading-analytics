@@ -41,7 +41,7 @@ def fmt(val, pct=False, bn=False, x=False):
 st.header("Fundamental Analysis")
 st.caption("Valuation multiples, earnings trends, and financial health indicators — assess the intrinsic worth of a company.")
 
-ticker = st.session_state.get("global_ticker", "SPY").strip().upper()
+ticker = (st.session_state.get("global_ticker") or "SPY").strip().upper()
 
 # --- Load Data ---
 @st.cache_data(ttl=600)

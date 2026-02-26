@@ -23,7 +23,7 @@ from components.kpi_cards import render_kpi_row, render_signal_badge
 st.header("Overview")
 st.caption("At-a-glance view of a single asset — equity curve, risk metrics, and current model signals.")
 
-ticker = st.session_state.get("global_ticker", "SPY").strip().upper()
+ticker = (st.session_state.get("global_ticker") or "SPY").strip().upper()
 
 # --- Sidebar ---
 with st.sidebar:

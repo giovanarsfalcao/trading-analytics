@@ -21,7 +21,7 @@ from components.kpi_cards import render_kpi_row
 
 st.header("Risk Management")
 
-ticker = st.session_state.get("global_ticker", "SPY").strip().upper()
+ticker = (st.session_state.get("global_ticker") or "SPY").strip().upper()
 
 # --- Sidebar ---
 with st.sidebar:

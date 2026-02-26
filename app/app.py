@@ -23,12 +23,32 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# --- Global Ticker (renders above navigation categories) ---
+# --- Force ticker above navigation via CSS ---
+st.markdown("""
+<style>
+[data-testid="stSidebarContent"] {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+}
+[data-testid="stSidebarNav"] {
+    order: 2;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+[data-testid="stSidebarUserContent"] {
+    order: 1;
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# --- Global Ticker ---
 with st.sidebar:
     if "global_ticker" not in st.session_state:
         st.session_state["global_ticker"] = "SPY"
     st.text_input("Ticker", key="global_ticker", placeholder="e.g. AAPL, SPY, MSFT")
-    st.divider()
 
 # --- Navigation ---
 welcome     = st.Page("pages/0_Welcome.py",               title="Welcome",              icon=":material/home:")
@@ -48,10 +68,5 @@ nav = st.navigation(
         "Optimization": [portfolio],
     }
 )
-
-# --- Sidebar Branding ---
-with st.sidebar:
-    st.markdown("---")
-    st.caption("Trading Analytics v2.0")
 
 nav.run()
