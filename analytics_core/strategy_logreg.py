@@ -7,8 +7,8 @@ probability output with technical indicators as features.
 
 import pandas as pd
 import numpy as np
-from analytics_core.strategy import TechnicalIndicators
-from analytics_core.strategy.models import LogisticRegression
+from analytics_core.indicators import TechnicalIndicators
+from analytics_core.models import LogisticRegression
 
 FEATURES = ["MACD_HIST", "RSI", "MFI", "BB"]
 

@@ -46,7 +46,7 @@ st.markdown("""
 # --- Global Ticker ---
 with st.sidebar:
     if "global_ticker" not in st.session_state:
-        st.session_state["global_ticker"] = "SPY"
+        st.session_state["global_ticker"] = "AAPL"
     st.text_input("Ticker", key="global_ticker", placeholder="e.g. AAPL, SPY, MSFT")
 
 # --- Navigation ---

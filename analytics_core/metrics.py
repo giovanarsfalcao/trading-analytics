@@ -7,15 +7,15 @@ Implementation of common risk metrics:
 - Value at Risk (VaR)
 """
 
-import numpy as np 
+import numpy as np
 import pandas as pd
 from typing import Union
 
 """
 Sharpe Ratio: measures risk-adjusted returns by comparing excess
-to the volatility of those returns. 
+to the volatility of those returns.
 - Beantwortet die Frage: Wie viel Überschussrendite erzielen wir pro Einheit Risiko?
-- Typischer Antwort: „Unsere Sharpe Ratio beträgt 1,5.“
+- Typischer Antwort: „Unsere Sharpe Ratio beträgt 1,5."
 
 Sharpe Ratio = (Mean Return - Risk Free Rate)/Standard Deviation of Returns
 
@@ -53,9 +53,9 @@ def calculate_sharpe_ratio(
 Maximum Drawdown: measures the largest peak-to-through decline
 in the portfolio value. It measures the largest loss from a historical peak.
 - Beantwortet die Frage: Wie viel Geld könnten wir höchstens verlieren, wenn wir zu einem Höchststand kaufen und zu einem Tiefststand verkaufen?
-- Typischer Antwort: „Unser Maximum Drawdown beträgt -20 %.“
+- Typischer Antwort: „Unser Maximum Drawdown beträgt -20 %."
 
-Max Drawdown = (Through Value - Peak Value ) / Peak Value 
+Max Drawdown = (Through Value - Peak Value ) / Peak Value
 
 Parametern:
 - prices: pd.Series ([100, 95, 90, 85, 80, 90, 95, 100]) or np.ndarray
@@ -71,7 +71,7 @@ Implementieren:
 """
 
 def calculate_max_drawdown(
-       prices: Union[pd.Series, np.ndarray] 
+       prices: Union[pd.Series, np.ndarray]
 ) -> float:
     if isinstance(prices, np.ndarray):
         prices = pd.Series(prices)
@@ -81,11 +81,11 @@ def calculate_max_drawdown(
     return max_drawdown
 
 """
-Historical Value at Risk (VaR): estimated the maximum loss 
+Historical Value at Risk (VaR): estimated the maximum loss
 - Beantwortet die Frage: Wenn es morgen an der Börse schlecht läuft, wie viel Geld verlieren wir dann höchstens?
-- Typischer Antwort: „Unser 1-Tages-VaR liegt bei 1.000 € mit einer Wahrscheinlichkeit von 95 %.“
-- Erklärung: „Wir sind uns zu 95 % sicher, dass wir morgen nicht mehr als 1.000 € verlieren werden.“
-Oder andersherum: „Nur in 5 % der Fälle (also an etwa einem Tag pro Monat) wird der Verlust schlimmer als 1.000 € sein.“
+- Typischer Antwort: „Unser 1-Tages-VaR liegt bei 1.000 € mit einer Wahrscheinlichkeit von 95 %."
+- Erklärung: „Wir sind uns zu 95 % sicher, dass wir morgen nicht mehr als 1.000 € verlieren werden."
+Oder andersherum: „Nur in 5 % der Fälle (also an etwa einem Tag pro Monat) wird der Verlust schlimmer als 1.000 € sein."
 
 Parametern:
 - returns: pd.Series ([0.01, -0.02, 0.03]) or np.ndarray
@@ -111,8 +111,8 @@ def calculate_var(
 """
 Calculate all risk metrics at once.
 
-Ziel: Convenience function um alle Metrics auf einmal zu berechnen und 
-die Ergebnisse in einem Dictionary zurückgegeben. 
+Ziel: Convenience function um alle Metrics auf einmal zu berechnen und
+die Ergebnisse in einem Dictionary zurückgegeben.
 
 Parametern:
 - returns: pd.Series or np.ndarray
@@ -124,7 +124,7 @@ Parametern:
 Ergebnis/Return: dict
 
 Implementieren:
-- Alle Funktionen aufrufen 
+- Alle Funktionen aufrufen
 - Ergebnisse in einem Dictionary speichern
 """
 
@@ -136,7 +136,7 @@ def calculate_all_risk_metrics(
         confidence_level: float=0.95
 )-> dict:
     sharpe = calculate_sharpe_ratio(
-        returns, 
+        returns,
         risk_free_rate,
         periods_per_year
     )
@@ -170,7 +170,7 @@ Parametern:
 - returns: pd.Series or np.ndarray
 - periods_per_year: int
 
-Ergebnis/Return: 
+Ergebnis/Return:
 - annualized return: float
 
 Implementieren:
@@ -194,7 +194,7 @@ Parametern:
 - returns: pd.Series or np.ndarray
 - periods_per_year: int
 
-Ergebnis/Return: 
+Ergebnis/Return:
 - annualized volatility (std): float
 
 Implementieren:

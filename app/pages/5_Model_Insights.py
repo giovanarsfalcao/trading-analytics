@@ -8,8 +8,8 @@ import yfinance as yf
 from sklearn.metrics import confusion_matrix, roc_auc_score, roc_curve
 import yfinance_fix
 
-from analytics_core.strategy import TechnicalIndicators
-from analytics_core.strategy.models import LinearRegression, LogisticRegression
+from analytics_core.indicators import TechnicalIndicators
+from analytics_core.models import LinearRegression, LogisticRegression
 from components.charts import (
     roc_curve_chart, confusion_matrix_chart, CHART_LAYOUT, COLORS,
 )

@@ -7,8 +7,8 @@ import yfinance as yf
 import yfinance_fix
 import plotly.graph_objects as go
 
-from analytics_core.strategy import TechnicalIndicators
-from analytics_core.strategies.strategy_logreg import generate_signal as logreg_signal
+from analytics_core.indicators import TechnicalIndicators
+from analytics_core.strategy_logreg import generate_signal as logreg_signal
 from analytics_core.rating import (
     score_technical, score_fundamental, score_ml,
     overall_score, score_color, score_label, _score_rsi,

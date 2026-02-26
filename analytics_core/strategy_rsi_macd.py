@@ -6,7 +6,7 @@ Funktioniert mit Historical Data (keine IB Subscription nötig).
 
 import numpy as np
 import pandas as pd
-from analytics_core.strategy import TechnicalIndicators
+from analytics_core.indicators import TechnicalIndicators
 
 
 def generate_signal(df: pd.DataFrame) -> dict:
