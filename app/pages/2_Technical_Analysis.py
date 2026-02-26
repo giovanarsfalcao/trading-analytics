@@ -13,10 +13,11 @@ from components.charts import indicator_subplot
 st.header("Technical Analysis")
 st.caption("Chart-based momentum and trend indicators — identify patterns, overbought/oversold zones, and volatility breakouts.")
 
+ticker = st.session_state.get("global_ticker", "SPY").strip().upper()
+
 # --- Sidebar ---
 with st.sidebar:
     st.subheader("Data Settings")
-    ticker = st.text_input("Ticker", value="SPY", placeholder="e.g. AAPL, SPY, MSFT", key="ta_ticker")
     interval = st.selectbox("Interval", ["1d", "1h", "15m", "5m"], index=0, key="ta_interval")
     lookback = st.number_input("Lookback (rows)", value=5000, step=100, key="ta_lookback")
 

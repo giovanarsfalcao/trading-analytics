@@ -21,10 +21,11 @@ from components.kpi_cards import render_kpi_row
 
 st.header("Risk Management")
 
+ticker = st.session_state.get("global_ticker", "SPY").strip().upper()
+
 # --- Sidebar ---
 with st.sidebar:
     st.subheader("Settings")
-    ticker = st.text_input("Ticker", value="SPY", placeholder="e.g. AAPL, SPY, MSFT", key="risk_ticker")
     benchmark = st.text_input("Benchmark", value="SPY", help="Used for Beta and Alpha calculation", key="risk_benchmark")
     period = st.selectbox("Period", ["1y", "2y", "5y", "max"], index=2, key="risk_period")
     vol_window = st.slider("Volatility Window (days)", 10, 90, 30, key="risk_vol_window")

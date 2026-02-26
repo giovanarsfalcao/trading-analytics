@@ -16,10 +16,11 @@ from components.kpi_cards import render_metric_table
 
 st.header("Backtesting")
 
+ticker = st.session_state.get("global_ticker", "SPY").strip().upper()
+
 # --- Sidebar ---
 with st.sidebar:
     st.subheader("Settings")
-    ticker = st.text_input("Ticker", value="SPY", key="bt_ticker")
     period = st.selectbox("Period", ["1y", "2y", "5y", "max"], index=2, key="bt_period")
     strategy_name = st.selectbox(
         "Strategy", ["RSI + MACD", "Logistic Regression"], key="bt_strategy"

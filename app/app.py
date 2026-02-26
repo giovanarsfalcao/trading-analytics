@@ -23,6 +23,13 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# --- Global Ticker (renders above navigation categories) ---
+with st.sidebar:
+    if "global_ticker" not in st.session_state:
+        st.session_state["global_ticker"] = "SPY"
+    st.text_input("Ticker", key="global_ticker", placeholder="e.g. AAPL, SPY, MSFT")
+    st.divider()
+
 # --- Navigation ---
 welcome     = st.Page("pages/0_Welcome.py",               title="Welcome",              icon=":material/home:")
 overview    = st.Page("pages/1_Overview.py",              title="Overview",             icon=":material/dashboard:")

@@ -8,8 +8,8 @@ st.title("Trading Analytics Platform")
 st.caption("Quantitative research · Risk analysis · Backtesting · Portfolio optimization")
 
 st.info(
-    "Enter any stock ticker in the sidebar of any page and instantly get "
-    "risk metrics, model signals, backtests, and portfolio optimization."
+    "Enter a stock ticker once in the sidebar and instantly get "
+    "risk metrics, model signals, backtests, and portfolio optimization — across all pages."
 )
 
 # --- How it works ---
@@ -21,7 +21,7 @@ with col1:
     st.markdown("#### 1. Pick a Stock")
     st.markdown(
         "Enter a ticker symbol (e.g. **AAPL**, **SPY**, **NVDA**) "
-        "in the sidebar of any page. Each page has its own ticker input."
+        "in the sidebar — it applies to all analysis pages automatically."
     )
 
 with col2:
@@ -170,7 +170,7 @@ with c1:
 - US stocks: `AAPL`, `TSLA`, `NVDA`
 - ETFs: `SPY`, `QQQ`, `VTI`
 - Indices: `^GSPC` (S&P 500), `^NDX` (Nasdaq)
-- Each page has its own ticker — changing one page doesn't affect others
+- Enter the ticker once in the sidebar — it persists across all pages
     """)
 with c2:
     st.markdown("""

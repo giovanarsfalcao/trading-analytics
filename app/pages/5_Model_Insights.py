@@ -19,10 +19,11 @@ import plotly.graph_objects as go
 st.header("Model Insights")
 st.caption("Machine learning models for price prediction — OLS trend forecasting and logistic regression signal classification.")
 
+ticker = st.session_state.get("global_ticker", "SPY").strip().upper()
+
 # --- Sidebar ---
 with st.sidebar:
     st.subheader("Data Settings")
-    ticker = st.text_input("Ticker", value="SPY", placeholder="e.g. AAPL, SPY, MSFT", key="mi_ticker")
     interval = st.selectbox("Interval", ["1d", "1h", "15m", "5m"], index=0, key="mi_interval")
     lookback = st.number_input("Lookback (rows)", value=5000, step=100, key="mi_lookback")
 

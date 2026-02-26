@@ -23,10 +23,11 @@ from components.kpi_cards import render_kpi_row, render_signal_badge
 st.header("Overview")
 st.caption("At-a-glance view of a single asset — equity curve, risk metrics, and current model signals.")
 
+ticker = st.session_state.get("global_ticker", "SPY").strip().upper()
+
 # --- Sidebar ---
 with st.sidebar:
     st.subheader("Settings")
-    ticker = st.text_input("Ticker", value="SPY", placeholder="e.g. AAPL, SPY, MSFT", key="overview_ticker")
     period = st.selectbox("Period", ["1y", "2y", "5y", "max"], index=2, key="overview_period")
 
 # --- Load Data ---
