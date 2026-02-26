@@ -5,7 +5,6 @@ All charts use a consistent dark theme and color palette.
 """
 
 import plotly.graph_objects as go
-import plotly.express as px
 import pandas as pd
 import numpy as np
 
@@ -133,71 +132,6 @@ def rolling_volatility(returns: pd.Series, window: int = 30) -> go.Figure:
     return fig
 
 
-def weight_bar_chart(weights: dict, title: str = "Portfolio Weights",
-                     color: str = None) -> go.Figure:
-    """Horizontal bar chart for portfolio weights."""
-    filtered = {k: v for k, v in weights.items() if v > 0.01}
-    sorted_w = dict(sorted(filtered.items(), key=lambda x: x[1]))
-
-    fig = go.Figure()
-    fig.add_trace(go.Bar(
-        y=list(sorted_w.keys()),
-        x=[v * 100 for v in sorted_w.values()],
-        orientation="h",
-        marker_color=color or COLORS["blue"],
-        text=[f"{v:.1%}" for v in sorted_w.values()],
-        textposition="auto",
-    ))
-    fig.update_layout(
-        **CHART_LAYOUT,
-        title=title,
-        xaxis_title="Weight (%)",
-        height=max(250, len(sorted_w) * 40 + 100),
-    )
-    return fig
-
-
-def efficient_frontier(frontier_df: pd.DataFrame,
-                       max_sharpe_perf: tuple = None,
-                       min_vol_perf: tuple = None) -> go.Figure:
-    """Plot efficient frontier with optimal portfolio markers."""
-    fig = go.Figure()
-
-    fig.add_trace(go.Scatter(
-        x=frontier_df["volatility"] * 100,
-        y=frontier_df["return"] * 100,
-        mode="lines",
-        line=dict(color=COLORS["blue"], width=3),
-        name="Efficient Frontier",
-    ))
-
-    if max_sharpe_perf:
-        fig.add_trace(go.Scatter(
-            x=[max_sharpe_perf[1] * 100],
-            y=[max_sharpe_perf[0] * 100],
-            mode="markers",
-            marker=dict(symbol="star", size=18, color=COLORS["red"]),
-            name=f"Max Sharpe ({max_sharpe_perf[2]:.2f})",
-        ))
-
-    if min_vol_perf:
-        fig.add_trace(go.Scatter(
-            x=[min_vol_perf[1] * 100],
-            y=[min_vol_perf[0] * 100],
-            mode="markers",
-            marker=dict(symbol="circle", size=14, color=COLORS["green"]),
-            name=f"Min Volatility",
-        ))
-
-    fig.update_layout(
-        **CHART_LAYOUT,
-        title="Efficient Frontier",
-        xaxis_title="Volatility (%)",
-        yaxis_title="Expected Return (%)",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-    )
-    return fig
-
 
 def indicator_subplot(df: pd.DataFrame, indicator: str, **kwargs) -> go.Figure:
     """
@@ -285,42 +219,6 @@ def signal_distribution_chart(strategy_series: pd.Series) -> go.Figure:
     return fig
 
 
-def candlestick_chart(df: pd.DataFrame, title: str = "") -> go.Figure:
-    """OHLC candlestick chart."""
-    fig = go.Figure(data=[go.Candlestick(
-        x=df.index if "Date" not in df.columns else df["Date"],
-        open=df["Open"], high=df["High"],
-        low=df["Low"], close=df["Close"],
-        increasing_line_color=COLORS["green"],
-        decreasing_line_color=COLORS["red"],
-    )])
-    fig.update_layout(
-        **CHART_LAYOUT,
-        title=title,
-        xaxis_rangeslider_visible=False,
-    )
-    return fig
-
-
-def allocation_donut(weights: dict, title: str = "Allocation") -> go.Figure:
-    """Donut chart for portfolio allocation."""
-    filtered = {k: v for k, v in weights.items() if v > 0.01}
-
-    fig = go.Figure(data=[go.Pie(
-        labels=list(filtered.keys()),
-        values=list(filtered.values()),
-        hole=0.5,
-        textinfo="label+percent",
-        marker=dict(colors=px.colors.qualitative.Set2),
-    )])
-    fig.update_layout(
-        **CHART_LAYOUT,
-        title=title,
-        showlegend=True,
-        legend=dict(orientation="h", yanchor="bottom", y=-0.2),
-    )
-    return fig
-
 
 def roc_curve_chart(fpr, tpr, auc_score: float, title: str = "ROC Curve") -> go.Figure:
     """ROC curve plot."""
@@ -398,27 +296,6 @@ def monthly_returns_heatmap(prices: pd.Series, title: str = "Monthly Returns") -
     )
     return fig
 
-
-def correlation_heatmap(prices: pd.DataFrame, title: str = "Asset Correlation") -> go.Figure:
-    """Correlation heatmap for a portfolio of assets."""
-    corr = prices.pct_change().dropna().corr()
-    fig = go.Figure(go.Heatmap(
-        z=corr.values,
-        x=list(corr.columns),
-        y=list(corr.index),
-        colorscale="RdBu",
-        zmid=0, zmin=-1, zmax=1,
-        text=corr.round(2).values,
-        texttemplate="%{text}",
-        textfont=dict(size=12),
-        showscale=True,
-    ))
-    fig.update_layout(
-        **CHART_LAYOUT,
-        title=title,
-        height=max(350, len(corr) * 60 + 100),
-    )
-    return fig
 
 
 def confusion_matrix_chart(cm, title: str = "Confusion Matrix") -> go.Figure:

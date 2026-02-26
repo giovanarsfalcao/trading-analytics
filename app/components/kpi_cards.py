@@ -4,14 +4,6 @@ KPI metric card helpers for the dashboard.
 
 import streamlit as st
 
-COLORS = {
-    "green": "#00d4aa",
-    "red": "#ff4757",
-    "blue": "#1e88e5",
-    "orange": "#ffa502",
-    "gray": "#747d8c",
-}
-
 
 def render_kpi(label: str, value: str, delta: str = None,
                delta_color: str = "normal"):
@@ -35,47 +27,6 @@ def render_kpi_row(metrics: list[dict]):
                 delta=m.get("delta"),
                 delta_color=m.get("delta_color", "normal"),
             )
-
-
-def render_signal_badge(signal: str, reason: str = ""):
-    """
-    Render a colored signal badge (BUY/SELL/HOLD).
-    """
-    color_map = {
-        "BUY": COLORS["green"],
-        "SELL": COLORS["red"],
-        "HOLD": COLORS["gray"],
-        "LONG": COLORS["green"],
-        "SHORT": COLORS["red"],
-        "FLAT": COLORS["gray"],
-    }
-    color = color_map.get(signal.upper(), COLORS["gray"])
-    st.markdown(
-        f'<div style="background-color:{color}; color:white; padding:12px 20px; '
-        f'border-radius:8px; text-align:center; font-size:1.2em; font-weight:bold;">'
-        f'{signal.upper()}</div>',
-        unsafe_allow_html=True,
-    )
-    if reason:
-        st.caption(reason)
-
-
-def render_connection_badge(connected: bool):
-    """Render a connection status badge."""
-    if connected:
-        st.markdown(
-            '<div style="background-color:#00d4aa; color:white; padding:8px 16px; '
-            'border-radius:8px; text-align:center; font-weight:bold;">'
-            'Connected</div>',
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown(
-            '<div style="background-color:#ff4757; color:white; padding:8px 16px; '
-            'border-radius:8px; text-align:center; font-weight:bold;">'
-            'Not Connected</div>',
-            unsafe_allow_html=True,
-        )
 
 
 def fmt(val, pct=False, bn=False, x=False) -> str:

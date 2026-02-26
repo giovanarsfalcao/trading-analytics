@@ -1,8 +1,7 @@
 """
 Trading Analytics Platform
 
-Multi-page Streamlit app for quantitative analysis,
-backtesting, and portfolio optimization.
+Multi-page Streamlit app for quantitative analysis and backtesting.
 
 Run: streamlit run app/app.py
 """
@@ -58,14 +57,12 @@ fundamental = st.Page("pages/3_Fundamental_Analysis.py", title="Fundamental Anal
 risk        = st.Page("pages/4_Risk.py",                  title="Risk Management",      icon=":material/shield:")
 models      = st.Page("pages/5_Model_Insights.py",        title="Model Insights",       icon=":material/psychology:")
 backtest    = st.Page("pages/6_Backtesting.py",           title="Backtesting",          icon=":material/replay:")
-portfolio   = st.Page("pages/7_Portfolio.py",             title="Portfolio",            icon=":material/pie_chart:")
 
 nav = st.navigation(
     {
-        "Start":        [welcome],
-        "Analysis":     [rating, technical, fundamental, risk],
-        "Research":     [models, backtest],
-        "Optimization": [portfolio],
+        "Start":    [welcome],
+        "Analysis": [rating, technical, fundamental, risk],
+        "Research": [models, backtest],
     }
 )
 

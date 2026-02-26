@@ -8,13 +8,12 @@ import yfinance_fix
 import plotly.graph_objects as go
 
 from analytics_core.strategy import TechnicalIndicators
-from analytics_core.strategies.strategy_rsi_macd import generate_signal as rsi_signal
 from analytics_core.strategies.strategy_logreg import generate_signal as logreg_signal
 from analytics_core.rating import (
     score_technical, score_fundamental, score_ml,
     overall_score, score_color, score_label, _score_rsi,
 )
-from components.charts import CHART_LAYOUT, COLORS
+from components.charts import CHART_LAYOUT
 
 
 st.header("Stock Rating")
@@ -101,11 +100,6 @@ bb_val       = float(last["BB"])
 mfi_val      = float(last["MFI"])
 
 # Signals
-try:
-    sig_rsi = rsi_signal(df_raw)
-except Exception:
-    sig_rsi = {"signal": "N/A", "reason": "", "rsi": rsi_val, "macd_hist": macd_hist_val}
-
 try:
     sig_log = logreg_signal(df_raw)
 except Exception:

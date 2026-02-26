@@ -1,13 +1,14 @@
 # Trading Analytics Platform
 
-Quantitative research and analysis platform for strategy development, backtesting, and portfolio optimization.
+Quantitative research and analysis platform for stock analysis, risk management, and strategy backtesting.
 
 ## Features
 
-- **Overview** – Portfolio KPIs, equity curve, drawdown, model insights
-- **Model Lab** – Technical indicators (MACD, RSI, MFI, Bollinger Bands), OLS & Logistic Regression, ROC curves
-- **Risk** – Sharpe ratio, VaR 95%/99%, max drawdown, rolling volatility
-- **Portfolio** – Markowitz optimization (max Sharpe, min volatility, efficient frontier)
+- **Stock Rating** – Algorithmic score (0–100) across technical, fundamental, and ML dimensions
+- **Technical Analysis** – MACD, RSI, MFI, Bollinger Bands with interactive charts
+- **Fundamental Analysis** – Valuation multiples, earnings trends, cash flow, balance sheet
+- **Risk Management** – Sharpe, VaR, CVaR, Beta, rolling volatility, Monte Carlo simulation
+- **Model Insights** – OLS & Logistic Regression, ROC curves, confusion matrix
 - **Backtesting** – Strategy vs. buy & hold comparison with full performance metrics
 
 ## Quick Start

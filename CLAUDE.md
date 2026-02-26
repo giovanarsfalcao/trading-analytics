@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Trading Analytics is a quantitative research and analysis platform for strategy development, backtesting, and portfolio optimization. Built with Python + Streamlit, it provides technical indicators, regression models (OLS/Logistic), and portfolio optimization (Markowitz MPT).
+Trading Analytics is a quantitative research and analysis platform for strategy development, backtesting, and stock analysis. Built with Python + Streamlit, it provides technical indicators, regression models (OLS/Logistic), risk metrics, and strategy backtesting.
 
 ## Quick Start
 
@@ -19,33 +19,33 @@ streamlit run app/app.py
 ```
 trading-analytics/
 ├── app/                    # Streamlit web application
-│   ├── app.py              # Main dashboard
-│   └── pages/              # Overview, Model Lab, Risk, Portfolio, Backtesting
-├── analytics_core/         # Core Python package
-│   ├── data/               # Database (SQLAlchemy) + yfinance data fetching
-│   ├── strategy/           # Technical indicators + regression models
-│   ├── strategies/         # RSI+MACD and LogReg strategy definitions
-│   ├── risk/               # Sharpe, VaR, max drawdown calculations
-│   ├── portfolio/          # Markowitz optimization (pyportfolioopt)
-│   ├── backtest/           # Strategy vs. buy & hold engine
-│   └── rating.py           # Stock scoring logic (technical, fundamental, ML)
-└── notebooks/              # Research notebooks (indicators, regression analysis)
+│   ├── app.py              # Main dashboard + navigation
+│   ├── yfinance_fix.py     # Chrome session singleton for Yahoo Finance
+│   ├── pages/              # 0_Welcome, 1_Rating, 2_Technical, 3_Fundamental, 4_Risk, 5_Model, 6_Backtesting
+│   └── components/         # Shared chart builders (charts.py) + KPI helpers (kpi_cards.py)
+└── analytics_core/         # Core Python package
+    ├── rating.py           # Stock scoring logic (technical, fundamental, ML)
+    ├── strategy/           # Technical indicators + regression models
+    ├── strategies/         # RSI+MACD and LogReg strategy definitions
+    ├── risk/               # Sharpe, VaR, max drawdown calculations
+    └── backtest/           # Strategy vs. buy & hold engine
 ```
 
 ## Key Modules
 
-- **analytics_core/data/yfinance_fix.py** - Rate limiting workaround using curl_cffi to impersonate Chrome
-- **analytics_core/data/database.py** - SQLAlchemy ORM models (MarketData, PortfolioSnapshot, PerformanceMetric)
-- **analytics_core/data/crud.py** - CRUD operations for all database entities
+- **app/yfinance_fix.py** - Rate limiting workaround using curl_cffi to impersonate Chrome
+- **analytics_core/rating.py** - Stock scoring (0–100) across technical, fundamental, and ML dimensions
 - **analytics_core/strategy/indicators.py** - Chainable technical indicators (MACD, RSI, MFI, Bollinger Bands)
 - **analytics_core/strategy/models.py** - LinearRegression (OLS) and LogisticRegression for price prediction
-- **analytics_core/risk/metrics.py** - Risk calculations (Sharpe ratio, VaR, max drawdown)
-- **analytics_core/portfolio/optimizer.py** - Portfolio optimization (max Sharpe, min volatility, efficient frontier)
+- **analytics_core/risk/metrics.py** - Risk calculations (Sharpe ratio, VaR, max drawdown, Monte Carlo)
+- **analytics_core/backtest/engine.py** - Backtest engine (strategy vs. buy & hold)
+- **analytics_core/strategies/strategy_logreg.py** - LogReg signal generator (used by Rating + Backtesting)
+- **analytics_core/strategies/strategy_rsi_macd.py** - RSI+MACD signal generator (used by Backtesting)
 
 ## Critical Guidelines
 
 ### DO NOT break the yfinance fix
-The `yfinance_fix.py` module is critical for data fetching. It uses `curl_cffi` with Chrome impersonation to bypass Yahoo Finance rate limiting. Never modify this without understanding the session/cookie handling.
+`app/yfinance_fix.py` is critical for data fetching. It uses `curl_cffi` with Chrome impersonation to bypass Yahoo Finance rate limiting. Never modify this without understanding the session/cookie handling.
 
 ### Ask before implementing new features
 Discuss the approach before writing code for new functionality. Don't assume an implementation path.
@@ -54,26 +54,12 @@ Discuss the approach before writing code for new functionality. Don't assume an 
 In Streamlit code, catch exceptions and display readable error messages to the user rather than raw tracebacks.
 
 ### Be careful with these fragile areas
-1. **Database schema** - Changing SQLAlchemy models affects stored data. Migrations may be needed.
-2. **Indicator calculations** - Math must match standard technical analysis definitions exactly.
+1. **Indicator calculations** - Math must match standard technical analysis definitions exactly.
+2. **yfinance_fix session** - All `yf.download` and `yf.Ticker` calls must use `session=yfinance_fix.chrome_session`.
 
 ## Code Style
 
 - **Language**: Use English for all new code and comments
 - **Comments**: Minimal - code should be self-documenting
 - **Data manipulation**: Use pandas for all data operations
-- **Testing**: No formal test suite yet; manual testing via notebooks/Streamlit UI
-
-## Data Flow
-
-1. **Fetch**: yfinance + curl_cffi session → OHLCV DataFrame
-2. **Store**: SQLAlchemy ORM → tradbot.db (SQLite)
-3. **Analyze**: TechnicalIndicators / Regression models
-4. **Optimize**: pyportfolioopt for portfolio weights
-5. **Display**: Streamlit dashboard with interactive plots
-
-## Database Tables
-
-- `MarketData` - OHLCV price data (indexed by ticker, date)
-- `PortfolioSnapshot` - Portfolio weights and value over time
-- `PerformanceMetric` - Risk metrics snapshots
+- **Testing**: No formal test suite; manual testing via Streamlit UI

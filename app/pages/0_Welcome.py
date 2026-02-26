@@ -5,11 +5,11 @@ Welcome – Getting Started Guide
 import streamlit as st
 
 st.title("Trading Analytics Platform")
-st.caption("Quantitative research · Risk analysis · Backtesting · Portfolio optimization")
+st.caption("Quantitative research · Technical & fundamental analysis · Risk management · Backtesting")
 
 st.info(
     "Enter a stock ticker once in the sidebar and instantly get "
-    "risk metrics, model signals, backtests, and portfolio optimization — across all pages."
+    "ratings, risk metrics, model signals, and backtests — across all pages."
 )
 
 # --- How it works ---
@@ -28,7 +28,7 @@ with col2:
     st.markdown("#### 2. Choose a Tool")
     st.markdown(
         "Use the navigation on the left to switch between **Analysis** "
-        "(Technical, Fundamental, Risk), **Research** (Models, Backtesting), or **Portfolio**."
+        "(Rating, Technical, Fundamental, Risk) or **Research** (Models, Backtesting)."
     )
 
 with col3:
@@ -85,17 +85,6 @@ Covers:
 **Inputs:** Ticker (US stocks recommended; e.g. `AAPL`, `MSFT`, `GOOGL`)
     """)
 
-with st.expander("🤖  Model Insights – ML Price Prediction", expanded=False):
-    st.markdown("""
-**Best for:** Using machine learning to forecast price direction and generate research signals.
-
-Two tabs:
-1. **Linear Regression (OLS)** – Predicts future price changes; shows R², coefficients, residual diagnostics
-2. **Logistic Regression** – Classifies next move as UP or DOWN; shows AUC, ROC curve, confusion matrix
-
-**Inputs:** Ticker, Interval (daily / hourly / 15m / 5m), Features, Shift (forecast horizon)
-    """)
-
 with st.expander("🛡️  Risk Management", expanded=False):
     st.markdown("""
 **Best for:** Understanding how risky an asset is.
@@ -111,20 +100,15 @@ Metrics covered:
 **Inputs:** Ticker, Benchmark (default: SPY), Period, Monte Carlo settings
     """)
 
-with st.expander("🥧  Portfolio Optimization – Markowitz MPT", expanded=False):
+with st.expander("🤖  Model Insights – ML Price Prediction", expanded=False):
     st.markdown("""
-**Best for:** Building an optimal multi-asset portfolio.
+**Best for:** Using machine learning to forecast price direction and generate research signals.
 
-Two optimal portfolios are computed automatically:
-- **Max Sharpe** – Best risk-adjusted return (most efficient portfolio)
-- **Min Volatility** – Lowest possible risk
+Two tabs:
+1. **Linear Regression (OLS)** – Predicts future price changes; shows R², coefficients, residual diagnostics
+2. **Logistic Regression** – Classifies next move as UP or DOWN; shows AUC, ROC curve, confusion matrix
 
-Also shows:
-- Efficient frontier curve (risk vs. return trade-off)
-- Correlation heatmap (which assets move together)
-- Side-by-side weight comparison table
-
-**Inputs:** 2–10 comma-separated tickers (e.g. `AAPL, MSFT, GOOGL, AMZN`)
+**Inputs:** Ticker, Interval (daily / hourly / 15m / 5m), Features, Shift (forecast horizon)
     """)
 
 with st.expander("⏱️  Backtesting – Strategy vs. Buy & Hold", expanded=False):
@@ -155,9 +139,8 @@ st.markdown("""
 | Fundamental value check | `AAPL` | Fundamental Analysis |
 | Chart momentum read | `NVDA` | Technical Analysis |
 | ML signal research | `SPY` | Model Insights |
-| Tech mega-caps portfolio | `AAPL, MSFT, GOOGL, NVDA, META` | Portfolio |
 | ETF momentum backtest | `SPY` | Backtesting |
-| Sector diversification | `XLK, XLF, XLE, XLV, XLI` | Portfolio |
+| Overall stock assessment | `MSFT` | Stock Rating |
 """)
 
 st.divider()
@@ -180,5 +163,5 @@ with c2:
 - Data is cached for 5 minutes — re-runs are instant
 - For Monte Carlo: start with 500 simulations to stay fast, raise to 5000 for precision
 - Logistic Regression needs at least ~200 data points — use daily interval with 2y+ period
-- Portfolio optimization requires at least 2 tickers
+- Fundamental data is only available for US-listed stocks (not ETFs)
     """)
