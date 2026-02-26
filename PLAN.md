@@ -1,6 +1,6 @@
-# TradBot - Entwicklungsplan
+# Trading Analytics Platform - Entwicklungsplan
 
-> Quantitative Trading Platform mit Deep Learning, marktneutralen Strategien und Live Trading via Interactive Brokers
+> Quantitative Research und Analyse-Plattform mit Deep Learning, marktneutralen Strategien und erweitertem Backtesting
 
 ---
 
@@ -19,13 +19,12 @@
 
 ## Projektbeschreibung
 
-TradBot ist eine quantitative Trading-Analyse-Plattform für:
+Trading Analytics ist eine quantitative Research- und Analyse-Plattform für:
 
-- **Paper Trading & Backtesting** - Strategien risikofrei testen
+- **Backtesting** - Strategien historisch testen und vergleichen
 - **Deep Learning** - LSTM/Transformer für Signal-Generierung
 - **Marktneutrale Strategien** - Pairs Trading, Statistical Arbitrage
-- **Live Trading** - Automatisierte Execution via Interactive Brokers
-- **Cloud Deployment** - 24/7 Betrieb auf AWS/GCP
+- **Portfolio-Analyse** - Markowitz-Optimierung und Risikoanalyse
 
 ### Zielgruppe
 
@@ -62,11 +61,9 @@ TradBot ist eine quantitative Trading-Analyse-Plattform für:
 | Feature | Status | Priorität |
 |---------|--------|-----------|
 | Deep Learning Models | Geplant | Hoch |
-| IB Integration | Geplant | Hoch |
-| Signal Engine | Geplant | Hoch |
+| Marktneutrale Strategien | Geplant | Hoch |
+| Erweitertes Backtesting | Geplant | Hoch |
 | FastAPI Backend | Geplant | Mittel |
-| React Frontend | Geplant | Mittel |
-| Cloud Deployment | Geplant | Mittel |
 
 ---
 
@@ -95,30 +92,6 @@ pip install -r app/requirements.txt
 
 # Streamlit App starten
 streamlit run app/app.py
-```
-
-### Erweiterte Installation (zukünftig)
-
-```bash
-# Alle Dependencies (inkl. Deep Learning, IB)
-pip install -r requirements.txt
-
-# Oder mit Poetry
-poetry install
-
-# Environment Variables setzen
-cp .env.example .env
-# Dann .env bearbeiten mit IB Credentials etc.
-```
-
-### Docker Installation (zukünftig)
-
-```bash
-# Development
-docker-compose up -d
-
-# Production
-docker-compose -f docker-compose.prod.yml up -d
 ```
 
 ---
@@ -184,36 +157,6 @@ trainer.fit(train_data, epochs=100)
 signals = model.predict(new_data)
 ```
 
-### 4. IB Trading (zukünftig)
-
-```python
-from tradbot.execution import IBConnector, OrderManager
-
-# Verbindung
-ib = IBConnector()
-await ib.connect(port=7497)  # Paper Trading
-
-# Market Data
-quotes = await ib.get_quotes("AAPL")
-
-# Order platzieren
-order = OrderManager(ib)
-await order.market_order("AAPL", "BUY", 100)
-```
-
-### 5. CLI Commands (zukünftig)
-
-```bash
-# Backtest ausführen
-tradbot backtest --strategy pairs_trading --start 2023-01-01
-
-# Signal generieren
-tradbot signals --ticker AAPL --model lstm
-
-# Paper Trading starten
-tradbot trade --mode paper --strategy momentum
-```
-
 ---
 
 ## Geplante Features
@@ -245,16 +188,7 @@ tradbot trade --mode paper --strategy momentum
 - [ ] Beta-Hedging
 - [ ] Dollar-Neutral Portfolios
 
-### Phase 4: Execution & IB Integration
-
-- [ ] IB Gateway Connector
-- [ ] Paper Trading Support
-- [ ] Live Trading Support
-- [ ] Order Management
-- [ ] Position Tracking
-- [ ] P&L Monitoring
-
-### Phase 5: Backtesting
+### Phase 4: Backtesting
 
 - [ ] Vectorized Backtesting (vectorbt)
 - [ ] Transaction Costs
@@ -277,17 +211,7 @@ tradbot trade --mode paper --strategy momentum
 - [ ] Authentication (JWT)
 - [ ] PostgreSQL Migration
 
-### Phase 7: Cloud & DevOps
-
-- [ ] Docker Containerization
-- [ ] Docker Compose Setup
-- [ ] AWS/GCP Deployment
-- [ ] IB Gateway in Cloud
-- [ ] CI/CD Pipeline
-- [ ] Monitoring & Alerts
-- [ ] Automated Backups
-
-### Phase 8: Claude Integration
+### Phase 7: Claude Integration
 
 - [ ] MCP Server für Claude Code
 - [ ] Trade Review Assistent
@@ -343,8 +267,7 @@ TradBot/
 |   |   |-- core/
 |   |   |-- db/
 |   |   |-- services/
-|   |   |   |-- claude_assistant.py
-|   |   |   `-- ib_connector.py
+|   |   |   `-- claude_assistant.py
 |   |   `-- workers/
 |   |-- Dockerfile
 |   `-- requirements.txt
@@ -365,13 +288,9 @@ TradBot/
 |   |   `-- market_neutral/
 |   |       |-- pairs_trading.py
 |   |       `-- stat_arb.py
-|   |-- signals/
-|   |   |-- signal_generator.py
-|   |   `-- signal_combiner.py
-|   |-- execution/
-|   |   |-- ib_connector.py
-|   |   |-- order_manager.py
-|   |   `-- paper_trader.py
+|   |-- strategies/
+|   |   |-- strategy_rsi_macd.py
+|   |   `-- strategy_logreg.py
 |   |-- backtest/
 |   |   |-- engine.py
 |   |   `-- metrics.py
@@ -402,10 +321,10 @@ TradBot/
                     +--------+---------+
                              |
                              v
-+------------------+   +-----+------+   +------------------+
-|   Claude Code    |-->|   FastAPI  |<--|   IB Gateway     |
-|   (MCP Server)   |   |   Backend  |   |   Container      |
-+------------------+   +-----+------+   +------------------+
++------------------+   +-----+------+
+|   Claude Code    |-->|   FastAPI  |
+|   (MCP Server)   |   |   Backend  |
++------------------+   +-----+------+
                              |
               +--------------+--------------+
               |              |              |
@@ -426,7 +345,7 @@ TradBot/
 |-------|-------|
 | 1-3 | PyTorch Grundlagen lernen |
 | 4-6 | LSTM Model implementieren |
-| 7-8 | IB Paper Trading Setup |
+| 7-8 | Erweitertes Backtesting Setup |
 | 9-11 | FastAPI Backend |
 | 12 | Signal Engine v1 |
 
@@ -439,21 +358,21 @@ TradBot/
 | 7-10 | React Frontend |
 | 11-12 | Backtesting Framework |
 
-### Q3 2026: Production
+### Q3 2026: Erweiterung
 
 | Woche | Fokus |
 |-------|-------|
-| 1-4 | Docker & Cloud Setup |
-| 5-8 | Paper Trading Live (Cloud) |
-| 9-12 | Monitoring & Optimierung |
+| 1-4 | Erweitertes Backtesting (vectorbt, Monte Carlo) |
+| 5-8 | FastAPI Backend |
+| 9-12 | Claude Integration (MCP) |
 
-### Q4 2026: Live Trading
+### Q4 2026: Research
 
 | Woche | Fokus |
 |-------|-------|
-| 1-4 | Live Trading (kleine Positionen) |
-| 5-8 | Skalierung |
-| 9-12 | Erweiterte Strategien |
+| 1-4 | Performance Attribution |
+| 5-8 | Weitere Strategien & Modelle |
+| 9-12 | Dokumentation & Stabilisierung |
 
 ---
 
@@ -489,7 +408,7 @@ TradBot/
 | Technologie | Verwendung | Status |
 |-------------|------------|--------|
 | yfinance | Market Data | Aktiv |
-| ib_insync | IB Integration | Geplant |
+| vectorbt | Advanced Backtesting | Geplant |
 | vectorbt | Backtesting | Geplant |
 
 ### DevOps

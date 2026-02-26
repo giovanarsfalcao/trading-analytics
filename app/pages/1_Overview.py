@@ -14,8 +14,8 @@ from tradbot.risk.metrics import (
     calculate_sharpe_ratio, calculate_max_drawdown, calculate_var,
     calculate_annualized_return, calculate_annualized_volatility,
 )
-from tradbot.signals.signal_rsi_macd import generate_signal as rsi_signal
-from tradbot.signals.signal_logreg import generate_signal as logreg_signal
+from tradbot.strategies.strategy_rsi_macd import generate_signal as rsi_signal
+from tradbot.strategies.strategy_logreg import generate_signal as logreg_signal
 from components.charts import equity_curve, drawdown_chart, COLORS
 from components.kpi_cards import render_kpi_row, render_signal_badge
 
@@ -90,7 +90,7 @@ with col2:
 st.divider()
 
 # --- Active Signals ---
-st.subheader("Active Signals")
+st.subheader("Model Insights")
 
 try:
     sig_rsi = rsi_signal(df)

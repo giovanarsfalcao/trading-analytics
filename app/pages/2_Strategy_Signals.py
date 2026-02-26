@@ -14,8 +14,8 @@ import yfinance_fix
 
 from tradbot.strategy import TechnicalIndicators
 from tradbot.strategy.models import LinearRegression, LogisticRegression
-from tradbot.signals.signal_rsi_macd import generate_signal as rsi_signal
-from tradbot.signals.signal_logreg import generate_signal as logreg_signal
+from tradbot.strategies.strategy_rsi_macd import generate_signal as rsi_signal
+from tradbot.strategies.strategy_logreg import generate_signal as logreg_signal
 from components.charts import (
     indicator_subplot, roc_curve_chart, confusion_matrix_chart, CHART_LAYOUT, COLORS,
 )
@@ -24,7 +24,7 @@ from components.kpi_cards import render_signal_badge
 import plotly.graph_objects as go
 
 
-st.header("Strategy & Signals")
+st.header("Model Lab")
 
 # --- Sidebar ---
 with st.sidebar:

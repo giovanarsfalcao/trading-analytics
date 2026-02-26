@@ -4,7 +4,7 @@ Quick Backtest Test - Run with: python -m tradbot.backtest.test_backtest
 
 import yfinance as yf
 from tradbot.data import YFinanceFix
-from tradbot.signals.signal_rsi_macd import generate_strategy as rsi_strategy
+from tradbot.strategies.strategy_rsi_macd import generate_strategy as rsi_strategy
 from tradbot.backtest import Backtest
 
 # Patch yfinance

@@ -19,7 +19,7 @@ import pandas as pd
 from datetime import datetime
 from typing import Optional, Dict
 
-from .database import engine, Session, MarketData, Trade, Signal, PortfolioSnapshot, PerformanceMetric
+from .database import engine, Session, MarketData, PortfolioSnapshot, PerformanceMetric
 
 
 # =============================================================================
@@ -132,122 +132,6 @@ def load_market_data(
     df.columns = [c.capitalize() for c in df.columns]
 
     return df
-
-
-# =============================================================================
-# TRADES
-# =============================================================================
-
-def save_trade(
-    ticker: str,
-    side: str,
-    quantity: float,
-    price: float,
-    signal_id: Optional[int] = None,
-    pnl: Optional[float] = None
-) -> int:
-    """
-    Speichert einen Trade Record.
-
-    Returns
-    -------
-    int : Trade ID
-    """
-    session = Session()
-
-    trade = Trade(
-        ticker=ticker,
-        side=side.upper(),
-        quantity=quantity,
-        price=price,
-        signal_id=signal_id,
-        pnl=pnl
-    )
-
-    session.add(trade)
-    session.commit()
-    trade_id = trade.id
-    session.close()
-
-    return trade_id
-
-
-def load_trades(ticker: Optional[str] = None) -> pd.DataFrame:
-    """Lädt Trades als DataFrame."""
-    query = "SELECT * FROM trades"
-    if ticker:
-        query += f" WHERE ticker = '{ticker}'"
-    query += " ORDER BY timestamp DESC"
-
-    return pd.read_sql(query, engine, parse_dates=['timestamp'])
-
-
-# =============================================================================
-# SIGNALS
-# =============================================================================
-
-def save_signal(
-    ticker: str,
-    signal_type: str,
-    source: str,
-    strength: float = 1.0,
-    indicators: Optional[Dict[str, float]] = None
-) -> int:
-    """
-    Speichert ein Trading Signal.
-
-    Parameters
-    ----------
-    ticker : str
-        Aktien-Symbol
-    signal_type : str
-        'BUY', 'SELL', oder 'HOLD'
-    source : str
-        Signal-Quelle ('RSI', 'MACD', 'LogReg', etc.)
-    strength : float
-        Konfidenz-Level 0.0-1.0
-    indicators : dict, optional
-        Indikator-Werte zum Signal-Zeitpunkt
-        {'rsi': 25.5, 'macd_hist': 0.5, 'mfi': 30, 'bb': 0.2}
-
-    Returns
-    -------
-    int : Signal ID
-    """
-    session = Session()
-
-    signal = Signal(
-        ticker=ticker,
-        signal_type=signal_type.upper(),
-        source=source,
-        strength=strength
-    )
-
-    # Indikator-Werte hinzufügen wenn vorhanden
-    if indicators:
-        signal.rsi = indicators.get('rsi') or indicators.get('RSI')
-        signal.macd_hist = indicators.get('macd_hist') or indicators.get('MACD_HIST')
-        signal.mfi = indicators.get('mfi') or indicators.get('MFI')
-        signal.bb = indicators.get('bb') or indicators.get('BB')
-
-    session.add(signal)
-    session.commit()
-    signal_id = signal.id
-    session.close()
-
-    return signal_id
-
-
-def load_signals(ticker: Optional[str] = None, source: Optional[str] = None) -> pd.DataFrame:
-    """Lädt Signals als DataFrame."""
-    query = "SELECT * FROM signals WHERE 1=1"
-    if ticker:
-        query += f" AND ticker = '{ticker}'"
-    if source:
-        query += f" AND source = '{source}'"
-    query += " ORDER BY timestamp DESC"
-
-    return pd.read_sql(query, engine, parse_dates=['timestamp'])
 
 
 # =============================================================================

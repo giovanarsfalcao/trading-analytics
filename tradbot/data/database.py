@@ -10,8 +10,8 @@ Verwendung:
 """
 
 from datetime import datetime
-from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, ForeignKey
-from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 # =============================================================================
 # DATABASE CONNECTION
@@ -58,33 +58,6 @@ class MarketData(Base):
         return f"<MarketData {self.ticker} {self.date}>"
 
 
-class Trade(Base):
-    """
-    Trade Records (Buy/Sell Transaktionen).
-
-    Speichert jeden Trade mit Preis und P&L.
-    """
-    __tablename__ = "trades"
-
-    id = Column(Integer, primary_key=True)
-    ticker = Column(String(10), nullable=False, index=True)
-    timestamp = Column(DateTime, default=datetime.utcnow)
-
-    # Trade Details
-    side = Column(String(4), nullable=False)  # 'BUY' oder 'SELL'
-    quantity = Column(Float, nullable=False)
-    price = Column(Float, nullable=False)
-
-    # Optional: Signal das diesen Trade ausgelöst hat
-    signal_id = Column(Integer, ForeignKey("signals.id"), nullable=True)
-
-    # Profit/Loss (berechnet nach Position schließen)
-    pnl = Column(Float, nullable=True)
-
-    def __repr__(self):
-        return f"<Trade {self.side} {self.quantity} {self.ticker} @ {self.price}>"
-
-
 class PortfolioSnapshot(Base):
     """
     Portfolio State zu einem Zeitpunkt.
@@ -109,38 +82,6 @@ class PortfolioSnapshot(Base):
 
     def __repr__(self):
         return f"<PortfolioSnapshot {self.timestamp} ${self.total_value}>"
-
-
-class Signal(Base):
-    """
-    Trading Signals von Indikatoren/Models.
-
-    Speichert wann ein Buy/Sell Signal generiert wurde.
-    """
-    __tablename__ = "signals"
-
-    id = Column(Integer, primary_key=True)
-    ticker = Column(String(10), nullable=False, index=True)
-    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
-
-    # Signal Details
-    signal_type = Column(String(10), nullable=False)  # 'BUY', 'SELL', 'HOLD'
-    strength = Column(Float)  # 0.0 bis 1.0 Konfidenz
-
-    # Quelle des Signals
-    source = Column(String(50))  # 'RSI', 'MACD', 'LogReg', 'LinReg'
-
-    # Indikator-Werte zum Signal-Zeitpunkt (für Analyse)
-    rsi = Column(Float, nullable=True)
-    macd_hist = Column(Float, nullable=True)
-    mfi = Column(Float, nullable=True)
-    bb = Column(Float, nullable=True)
-
-    # Relationship: Trades die von diesem Signal ausgelöst wurden
-    trades = relationship("Trade", backref="signal")
-
-    def __repr__(self):
-        return f"<Signal {self.signal_type} {self.ticker} ({self.source})>"
 
 
 class PerformanceMetric(Base):

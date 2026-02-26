@@ -1,8 +1,8 @@
-# CLAUDE.md - TradBot Project Guidelines
+# CLAUDE.md - Trading Analytics Platform Guidelines
 
 ## Project Overview
 
-TradBot is a quantitative trading analysis platform for paper trading, backtesting, and research. Built with Python + Streamlit, it provides technical indicators, regression models (OLS/Logistic), and portfolio optimization (Markowitz MPT).
+Trading Analytics is a quantitative research and analysis platform for strategy development, backtesting, and portfolio optimization. Built with Python + Streamlit, it provides technical indicators, regression models (OLS/Logistic), and portfolio optimization (Markowitz MPT).
 
 ## Quick Start
 
@@ -17,21 +17,24 @@ streamlit run app/app.py
 ## Architecture
 
 ```
-TradBot/
+trading-analytics/
 ├── app/                    # Streamlit web application
-│   └── app.py              # Main dashboard
+│   ├── app.py              # Main dashboard
+│   └── pages/              # Overview, Model Lab, Risk, Portfolio, Backtesting
 ├── tradbot/                # Core Python package
 │   ├── data/               # Database (SQLAlchemy) + yfinance data fetching
 │   ├── strategy/           # Technical indicators + regression models
+│   ├── strategies/         # RSI+MACD and LogReg strategy definitions
 │   ├── risk/               # Sharpe, VaR, max drawdown calculations
-│   └── portfolio/          # Markowitz optimization (pyportfolioopt)
+│   ├── portfolio/          # Markowitz optimization (pyportfolioopt)
+│   └── backtest/           # Strategy vs. buy & hold engine
 └── notebooks/              # Research notebooks (indicators, regression analysis)
 ```
 
 ## Key Modules
 
 - **tradbot/data/yfinance_fix.py** - Rate limiting workaround using curl_cffi to impersonate Chrome
-- **tradbot/data/database.py** - SQLAlchemy ORM models (MarketData, Trade, Signal, Portfolio, Metrics)
+- **tradbot/data/database.py** - SQLAlchemy ORM models (MarketData, PortfolioSnapshot, PerformanceMetric)
 - **tradbot/data/crud.py** - CRUD operations for all database entities
 - **tradbot/strategy/indicators.py** - Chainable technical indicators (MACD, RSI, MFI, Bollinger Bands)
 - **tradbot/strategy/models.py** - LinearRegression (OLS) and LogisticRegression for price prediction
@@ -71,7 +74,5 @@ In Streamlit code, catch exceptions and display readable error messages to the u
 ## Database Tables
 
 - `MarketData` - OHLCV price data (indexed by ticker, date)
-- `Trade` - Buy/sell transaction records
-- `Signal` - Trading signals with source and strength
 - `PortfolioSnapshot` - Portfolio weights and value over time
 - `PerformanceMetric` - Risk metrics snapshots

@@ -1,8 +1,8 @@
 """
-TradBot - Quantitative Trading Dashboard
+Trading Analytics Platform
 
-Professional multi-page Streamlit app for quantitative analysis,
-backtesting, and paper trading execution.
+Multi-page Streamlit app for quantitative analysis,
+backtesting, and portfolio optimization.
 
 Run: streamlit run app/app.py
 """
@@ -17,7 +17,7 @@ import streamlit as st
 
 # --- Page Config (must be first Streamlit command) ---
 st.set_page_config(
-    page_title="TradBot",
+    page_title="Trading Analytics",
     page_icon=":material/monitoring:",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -29,19 +29,17 @@ strategy = st.Page("pages/2_Strategy_Signals.py", title="Strategy & Signals", ic
 risk = st.Page("pages/3_Risk.py", title="Risk Management", icon=":material/shield:")
 portfolio = st.Page("pages/4_Portfolio.py", title="Portfolio", icon=":material/pie_chart:")
 backtest = st.Page("pages/5_Backtesting.py", title="Backtesting", icon=":material/replay:")
-execution = st.Page("pages/6_Execution.py", title="Execution", icon=":material/bolt:")
 
 nav = st.navigation(
     {
         "Analysis": [overview, strategy, risk],
         "Optimization": [portfolio, backtest],
-        "Trading": [execution],
     }
 )
 
 # --- Sidebar Branding ---
 with st.sidebar:
     st.markdown("---")
-    st.caption("TradBot v1.0")
+    st.caption("Trading Analytics v2.0")
 
 nav.run()
