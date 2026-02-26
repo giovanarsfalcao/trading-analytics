@@ -8,7 +8,7 @@ import yfinance as yf
 import yfinance_fix
 
 from tradbot.portfolio import optimize_max_sharpe, optimize_min_volatility, get_efficient_frontier
-from components.charts import weight_bar_chart, efficient_frontier, allocation_donut, COLORS
+from components.charts import weight_bar_chart, efficient_frontier, allocation_donut, correlation_heatmap, COLORS
 from components.kpi_cards import render_kpi_row
 
 
@@ -103,6 +103,13 @@ with st.spinner("Computing efficient frontier..."):
         st.plotly_chart(fig, use_container_width=True)
     except Exception as e:
         st.error(f"Could not compute efficient frontier: {e}")
+
+st.divider()
+
+# --- Correlation Heatmap ---
+st.subheader("Asset Correlation")
+fig_corr = correlation_heatmap(prices)
+st.plotly_chart(fig_corr, use_container_width=True)
 
 st.divider()
 

@@ -148,10 +148,15 @@ def calculate_all_risk_metrics(
         confidence_level
     )
 
+    sortino = calculate_sortino_ratio(returns, risk_free_rate, periods_per_year)
+    cvar = calculate_cvar(returns, confidence_level)
+
     all_metrics = {
         "sharpe": sharpe,
         "max_drawdown": max_drawdown,
-        "var": var
+        "var": var,
+        "sortino": sortino,
+        "cvar": cvar,
     }
 
     return all_metrics
@@ -202,3 +207,56 @@ def calculate_annualized_volatility(
 ) -> float:
     annualized_volatility = returns.std() * np.sqrt(periods_per_year)
     return annualized_volatility
+
+
+def calculate_beta(
+        returns: pd.Series,
+        benchmark_returns: pd.Series,
+) -> float:
+    aligned = pd.concat([returns, benchmark_returns], axis=1).dropna()
+    cov = aligned.cov().iloc[0, 1]
+    var = aligned.iloc[:, 1].var()
+    return cov / var
+
+
+def calculate_alpha(
+        returns: pd.Series,
+        benchmark_returns: pd.Series,
+        risk_free_rate: float=0.02,
+        periods_per_year: int=252,
+) -> float:
+    beta = calculate_beta(returns, benchmark_returns)
+    ann_return = returns.mean() * periods_per_year
+    bench_ann = benchmark_returns.mean() * periods_per_year
+    return ann_return - risk_free_rate - beta * (bench_ann - risk_free_rate)
+
+
+def calculate_rolling_sharpe(
+        returns: Union[pd.Series, np.ndarray],
+        window: int=252,
+        risk_free_rate: float=0.02,
+        periods_per_year: int=252
+) -> pd.Series:
+    daily_rf = risk_free_rate / periods_per_year
+    rolling_mean = returns.rolling(window).mean() - daily_rf
+    rolling_std = returns.rolling(window).std()
+    return (rolling_mean / rolling_std) * np.sqrt(periods_per_year)
+
+
+def calculate_sortino_ratio(
+        returns: Union[pd.Series, np.ndarray],
+        risk_free_rate: float=0.02,
+        periods_per_year: int=252
+) -> float:
+    downside = returns[returns < 0]
+    downside_vol = downside.std() * np.sqrt(periods_per_year)
+    ann_return = returns.mean() * periods_per_year
+    return (ann_return - risk_free_rate) / downside_vol
+
+
+def calculate_cvar(
+        returns: Union[pd.Series, np.ndarray],
+        confidence_level: float=0.95
+) -> float:
+    var = calculate_var(returns, confidence_level)
+    return returns[returns <= var].mean()

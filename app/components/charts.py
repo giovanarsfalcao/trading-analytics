@@ -346,6 +346,81 @@ def roc_curve_chart(fpr, tpr, auc_score: float, title: str = "ROC Curve") -> go.
     return fig
 
 
+def rolling_sharpe_chart(returns: pd.Series, window: int = 252,
+                         risk_free_rate: float = 0.02) -> go.Figure:
+    """Rolling annualized Sharpe ratio chart."""
+    daily_rf = risk_free_rate / 252
+    rs = ((returns.rolling(window).mean() - daily_rf) /
+          returns.rolling(window).std()) * np.sqrt(252)
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=rs.index, y=rs,
+        line=dict(color=COLORS["blue"], width=1.5),
+        name=f"{window}d Rolling Sharpe",
+    ))
+    fig.add_hline(y=0, line_color=COLORS["gray"], line_dash="dash")
+    fig.add_hline(y=1, line_color=COLORS["green"], line_dash="dot", opacity=0.5)
+    fig.update_layout(
+        **CHART_LAYOUT,
+        title=f"Rolling Sharpe ({window}-day)",
+        yaxis_title="Sharpe Ratio",
+        hovermode="x unified",
+    )
+    return fig
+
+
+def monthly_returns_heatmap(prices: pd.Series, title: str = "Monthly Returns") -> go.Figure:
+    """Calendar heatmap of monthly returns (years x months)."""
+    returns = prices.pct_change().dropna()
+    monthly = returns.resample("ME").apply(lambda x: (1 + x).prod() - 1)
+    pivot = monthly.groupby([monthly.index.year, monthly.index.month]).first().unstack()
+    pivot.columns = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+    fig = go.Figure(go.Heatmap(
+        z=pivot.values * 100,
+        x=list(pivot.columns),
+        y=[str(y) for y in pivot.index],
+        colorscale="RdYlGn",
+        zmid=0,
+        text=(pivot * 100).round(1).values,
+        texttemplate="%{text}%",
+        textfont=dict(size=11),
+        showscale=True,
+    ))
+    fig.update_layout(
+        **CHART_LAYOUT,
+        title=title,
+        xaxis_title="Month",
+        yaxis_title="Year",
+        height=max(300, len(pivot) * 40 + 120),
+    )
+    return fig
+
+
+def correlation_heatmap(prices: pd.DataFrame, title: str = "Asset Correlation") -> go.Figure:
+    """Correlation heatmap for a portfolio of assets."""
+    corr = prices.pct_change().dropna().corr()
+    fig = go.Figure(go.Heatmap(
+        z=corr.values,
+        x=list(corr.columns),
+        y=list(corr.index),
+        colorscale="RdBu",
+        zmid=0, zmin=-1, zmax=1,
+        text=corr.round(2).values,
+        texttemplate="%{text}",
+        textfont=dict(size=12),
+        showscale=True,
+    ))
+    fig.update_layout(
+        **CHART_LAYOUT,
+        title=title,
+        height=max(350, len(corr) * 60 + 100),
+    )
+    return fig
+
+
 def confusion_matrix_chart(cm, title: str = "Confusion Matrix") -> go.Figure:
     """Heatmap confusion matrix."""
     labels = ["Down (0)", "Up (1)"]

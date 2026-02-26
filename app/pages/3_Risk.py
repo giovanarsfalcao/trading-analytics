@@ -11,8 +11,10 @@ import yfinance_fix
 from tradbot.risk.metrics import (
     calculate_sharpe_ratio, calculate_max_drawdown, calculate_var,
     calculate_annualized_return, calculate_annualized_volatility,
+    calculate_sortino_ratio, calculate_cvar,
+    calculate_beta, calculate_alpha,
 )
-from components.charts import drawdown_chart, return_distribution, rolling_volatility
+from components.charts import drawdown_chart, return_distribution, rolling_volatility, rolling_sharpe_chart, monthly_returns_heatmap
 from components.kpi_cards import render_kpi_row
 
 
@@ -22,6 +24,7 @@ st.header("Risk Management")
 with st.sidebar:
     st.subheader("Settings")
     ticker = st.text_input("Ticker", value="SPY", key="risk_ticker")
+    benchmark = st.text_input("Benchmark", value="SPY", key="risk_benchmark")
     period = st.selectbox("Period", ["1y", "2y", "5y", "max"], index=2, key="risk_period")
     vol_window = st.slider("Volatility Window (days)", 10, 90, 30, key="risk_vol_window")
 
@@ -36,6 +39,7 @@ def load_data(symbol, period):
 
 with st.spinner("Loading data..."):
     df = load_data(ticker, period)
+    df_bench = load_data(benchmark, period) if benchmark != ticker else df
 
 if df is None:
     st.error(f"Could not load data for {ticker}")
@@ -52,16 +56,34 @@ var_95 = calculate_var(returns, 0.95)
 var_99 = calculate_var(returns, 0.99)
 ann_ret = calculate_annualized_return(returns)
 ann_vol = calculate_annualized_volatility(returns)
+sortino = calculate_sortino_ratio(returns)
+cvar_95 = calculate_cvar(returns, 0.95)
+
+beta, alpha = None, None
+if df_bench is not None:
+    bench_returns = df_bench["Close"].pct_change().dropna()
+    try:
+        beta = calculate_beta(returns, bench_returns)
+        alpha = calculate_alpha(returns, bench_returns)
+    except Exception:
+        pass
 
 # --- KPI Row ---
-render_kpi_row([
+kpis = [
     {"label": "Sharpe Ratio", "value": f"{sharpe:.3f}"},
+    {"label": "Sortino Ratio", "value": f"{sortino:.3f}"},
     {"label": "Max Drawdown", "value": f"{max_dd:.2%}"},
     {"label": "VaR 95%", "value": f"{var_95:.4f}"},
-    {"label": "VaR 99%", "value": f"{var_99:.4f}"},
+    {"label": "CVaR 95%", "value": f"{cvar_95:.4f}"},
     {"label": "Ann. Return", "value": f"{ann_ret:.2%}"},
     {"label": "Ann. Volatility", "value": f"{ann_vol:.2%}"},
-])
+]
+if beta is not None:
+    kpis += [
+        {"label": f"Beta ({benchmark})", "value": f"{beta:.3f}"},
+        {"label": f"Alpha ({benchmark})", "value": f"{alpha:.2%}"},
+    ]
+render_kpi_row(kpis)
 
 st.divider()
 
@@ -87,13 +109,27 @@ with col2:
 
 st.divider()
 
+# --- Rolling Sharpe ---
+st.subheader("Rolling Sharpe Ratio")
+fig_rs = rolling_sharpe_chart(returns, window=vol_window)
+st.plotly_chart(fig_rs, use_container_width=True)
+
+st.divider()
+
+# --- Monthly Returns Heatmap ---
+st.subheader("Monthly Returns")
+fig_monthly = monthly_returns_heatmap(prices)
+st.plotly_chart(fig_monthly, use_container_width=True)
+
+st.divider()
+
 # --- Detailed Stats Table ---
 st.subheader("Detailed Statistics")
 stats = pd.DataFrame({
     "Metric": [
         "Total Return", "Annualized Return", "Annualized Volatility",
-        "Sharpe Ratio", "Max Drawdown",
-        "VaR 95%", "VaR 99%",
+        "Sharpe Ratio", "Sortino Ratio", "Max Drawdown",
+        "VaR 95%", "VaR 99%", "CVaR 95%",
         "Skewness", "Kurtosis",
         "Best Day", "Worst Day",
         "Positive Days", "Negative Days",
@@ -104,9 +140,11 @@ stats = pd.DataFrame({
         f"{ann_ret:.2%}",
         f"{ann_vol:.2%}",
         f"{sharpe:.3f}",
+        f"{sortino:.3f}",
         f"{max_dd:.2%}",
         f"{var_95:.4f}",
         f"{var_99:.4f}",
+        f"{cvar_95:.4f}",
         f"{returns.skew():.3f}",
         f"{returns.kurtosis():.3f}",
         f"{returns.max():.2%}",
@@ -116,4 +154,9 @@ stats = pd.DataFrame({
         f"{len(df):,}",
     ]
 })
+if beta is not None:
+    stats = pd.concat([stats, pd.DataFrame({
+        "Metric": [f"Beta ({benchmark})", f"Alpha ({benchmark})"],
+        "Value": [f"{beta:.3f}", f"{alpha:.2%}"],
+    })], ignore_index=True)
 st.dataframe(stats, use_container_width=True, hide_index=True)
