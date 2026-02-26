@@ -27,8 +27,8 @@ with col1:
 with col2:
     st.markdown("#### 2. Choose a Tool")
     st.markdown(
-        "Use the navigation on the left to switch between **Risk**, "
-        "**Model Lab**, **Portfolio**, and **Backtesting**."
+        "Use the navigation on the left to switch between **Analysis** "
+        "(Technical, Fundamental, Risk), **Research** (Models, Backtesting), or **Portfolio**."
     )
 
 with col3:
@@ -56,17 +56,42 @@ Shows the most important numbers at a glance:
 **Inputs:** Ticker, Time period (1y / 2y / 5y / max)
     """)
 
-with st.expander("🔬  Model Lab – Technical Indicators & Signals", expanded=False):
+with st.expander("📈  Technical Analysis – Chart Indicators", expanded=False):
     st.markdown("""
-**Best for:** Deep-dive into signals and model performance.
+**Best for:** Reading price momentum, trend direction, and volatility from charts.
 
-Four tabs:
-1. **Technical Indicators** – Interactive charts for MACD, RSI, MFI, Bollinger Bands
-2. **Linear Regression (OLS)** – Predicts future price changes; shows R², coefficients, residual diagnostics
-3. **Logistic Regression** – Classifies next move as UP or DOWN; shows AUC, ROC curve, confusion matrix
-4. **Signal Dashboard** – Current signal from both models with confidence scores
+Four interactive indicator charts:
+- **MACD** – Momentum and trend direction via moving average convergence/divergence
+- **RSI** – Overbought / oversold zones (above 70 = overbought, below 30 = oversold)
+- **MFI** – Money Flow Index: combines price and volume to measure buying/selling pressure
+- **Bollinger Bands** – Volatility envelope; breakouts above/below bands signal potential moves
 
 **Inputs:** Ticker, Interval (daily / hourly / 15m / 5m), Indicator parameters (optional)
+    """)
+
+with st.expander("💼  Fundamental Analysis – Valuation & Financials", expanded=False):
+    st.markdown("""
+**Best for:** Assessing the intrinsic value and financial health of a company.
+
+Covers:
+- **Valuation multiples** – P/E, P/B, EV/EBITDA, P/S, PEG ratio
+- **Revenue & earnings trends** – Annual income statement (last 4 years)
+- **Profitability** – Gross margin, net margin, ROE, ROA
+- **Cash flow** – Operating cash flow and free cash flow trends
+- **Balance sheet** – Debt/equity ratio, current ratio, total cash vs. debt
+
+**Inputs:** Ticker (US stocks recommended; e.g. `AAPL`, `MSFT`, `GOOGL`)
+    """)
+
+with st.expander("🤖  Model Insights – ML Price Prediction", expanded=False):
+    st.markdown("""
+**Best for:** Using machine learning to forecast price direction and generate research signals.
+
+Two tabs:
+1. **Linear Regression (OLS)** – Predicts future price changes; shows R², coefficients, residual diagnostics
+2. **Logistic Regression** – Classifies next move as UP or DOWN; shows AUC, ROC curve, confusion matrix
+
+**Inputs:** Ticker, Interval (daily / hourly / 15m / 5m), Features, Shift (forecast horizon)
     """)
 
 with st.expander("🛡️  Risk Management", expanded=False):
@@ -125,10 +150,12 @@ st.markdown("""
 | Use case | Ticker input | Suggested page |
 |----------|-------------|---------------|
 | Single stock deep-dive | `AAPL` | Overview → Risk |
+| Fundamental value check | `AAPL` | Fundamental Analysis |
+| Chart momentum read | `NVDA` | Technical Analysis |
+| ML signal research | `SPY` | Model Insights |
 | Tech mega-caps portfolio | `AAPL, MSFT, GOOGL, NVDA, META` | Portfolio |
 | ETF momentum backtest | `SPY` | Backtesting |
 | Sector diversification | `XLK, XLF, XLE, XLV, XLI` | Portfolio |
-| Crypto-adjacent (if available) | `COIN, MSTR, MARA` | Risk |
 """)
 
 st.divider()

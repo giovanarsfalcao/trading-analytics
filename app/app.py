@@ -24,18 +24,21 @@ st.set_page_config(
 )
 
 # --- Navigation ---
-welcome = st.Page("pages/0_Welcome.py", title="Welcome", icon=":material/home:")
-overview = st.Page("pages/1_Overview.py", title="Overview", icon=":material/dashboard:")
-strategy = st.Page("pages/2_Strategy_Signals.py", title="Strategy & Signals", icon=":material/show_chart:")
-risk = st.Page("pages/3_Risk.py", title="Risk Management", icon=":material/shield:")
-portfolio = st.Page("pages/4_Portfolio.py", title="Portfolio", icon=":material/pie_chart:")
-backtest = st.Page("pages/5_Backtesting.py", title="Backtesting", icon=":material/replay:")
+welcome     = st.Page("pages/0_Welcome.py",               title="Welcome",              icon=":material/home:")
+overview    = st.Page("pages/1_Overview.py",              title="Overview",             icon=":material/dashboard:")
+technical   = st.Page("pages/2_Technical_Analysis.py",   title="Technical Analysis",   icon=":material/show_chart:")
+fundamental = st.Page("pages/3_Fundamental_Analysis.py", title="Fundamental Analysis", icon=":material/bar_chart:")
+risk        = st.Page("pages/4_Risk.py",                  title="Risk Management",      icon=":material/shield:")
+models      = st.Page("pages/5_Model_Insights.py",        title="Model Insights",       icon=":material/psychology:")
+backtest    = st.Page("pages/6_Backtesting.py",           title="Backtesting",          icon=":material/replay:")
+portfolio   = st.Page("pages/7_Portfolio.py",             title="Portfolio",            icon=":material/pie_chart:")
 
 nav = st.navigation(
     {
-        "Start": [welcome],
-        "Analysis": [overview, strategy, risk],
-        "Optimization": [portfolio, backtest],
+        "Start":        [welcome],
+        "Analysis":     [overview, technical, fundamental, risk],
+        "Research":     [models, backtest],
+        "Optimization": [portfolio],
     }
 )
 

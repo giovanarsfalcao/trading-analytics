@@ -1,62 +1,54 @@
 """
-Strategy & Signals - Technical Indicators, Regression Models, Signal Generation
-
-Chronological pipeline: Data -> Indicators -> Models -> Signals
+Model Insights - OLS Linear Regression, Logistic Regression
 """
 
 import streamlit as st
 import pandas as pd
-import numpy as np
 import yfinance as yf
-import statsmodels.api as sm
 from sklearn.metrics import confusion_matrix, roc_auc_score, roc_curve
 import yfinance_fix
 
 from tradbot.strategy import TechnicalIndicators
 from tradbot.strategy.models import LinearRegression, LogisticRegression
-from tradbot.strategies.strategy_rsi_macd import generate_signal as rsi_signal
-from tradbot.strategies.strategy_logreg import generate_signal as logreg_signal
 from components.charts import (
-    indicator_subplot, roc_curve_chart, confusion_matrix_chart, CHART_LAYOUT, COLORS,
+    roc_curve_chart, confusion_matrix_chart, CHART_LAYOUT, COLORS,
 )
-from components.kpi_cards import render_signal_badge
-
 import plotly.graph_objects as go
 
 
-st.header("Model Lab")
-st.caption("Configure technical indicators and train regression models to generate trading signals.")
+st.header("Model Insights")
+st.caption("Machine learning models for price prediction — OLS trend forecasting and logistic regression signal classification.")
 
 # --- Sidebar ---
 with st.sidebar:
     st.subheader("Data Settings")
-    ticker = st.text_input("Ticker", value="SPY", key="strat_ticker")
-    interval = st.selectbox("Interval", ["1d", "1h", "15m", "5m"], index=0, key="strat_interval")
-    lookback = st.number_input("Lookback (rows)", value=5000, step=100, key="strat_lookback")
+    ticker = st.text_input("Ticker", value="SPY", placeholder="e.g. AAPL, SPY, MSFT", key="mi_ticker")
+    interval = st.selectbox("Interval", ["1d", "1h", "15m", "5m"], index=0, key="mi_interval")
+    lookback = st.number_input("Lookback (rows)", value=5000, step=100, key="mi_lookback")
 
     st.divider()
     st.subheader("Indicator Parameters")
 
     with st.expander("MACD"):
-        macd_fast = st.number_input("Fast", 12, key="macd_fast")
-        macd_slow = st.number_input("Slow", 27, key="macd_slow")
-        macd_span = st.number_input("Signal", 9, key="macd_span")
+        macd_fast = st.number_input("Fast", 12, key="mi_macd_fast")
+        macd_slow = st.number_input("Slow", 27, key="mi_macd_slow")
+        macd_span = st.number_input("Signal", 9, key="mi_macd_span")
 
     with st.expander("RSI"):
-        rsi_length = st.number_input("RSI Length", 14, key="rsi_len")
+        rsi_length = st.number_input("RSI Length", 14, key="mi_rsi_len")
 
     with st.expander("MFI"):
-        mfi_length = st.number_input("MFI Length", 14, key="mfi_len")
+        mfi_length = st.number_input("MFI Length", 14, key="mi_mfi_len")
 
     with st.expander("Bollinger Bands"):
-        bb_length = st.number_input("BB Length", 20, key="bb_len")
-        bb_std = st.number_input("Std Dev", 2, key="bb_std")
+        bb_length = st.number_input("BB Length", 20, key="mi_bb_len")
+        bb_std = st.number_input("Std Dev", 2, key="mi_bb_std")
 
     features = st.multiselect(
         "Features",
         ["MACD_HIST", "MFI", "BB", "RSI"],
         default=["MACD_HIST", "MFI", "BB", "RSI"],
-        key="strat_features",
+        key="mi_features",
     )
 
 
@@ -77,7 +69,7 @@ with st.spinner("Loading data..."):
     df_raw = load_data(ticker, interval, lookback)
 
 if df_raw is None:
-    st.error("Could not load data")
+    st.error(f"Could not load data for {ticker}")
     st.stop()
 
 # Add indicators
@@ -91,25 +83,13 @@ df = ti.dropna().get_df()
 st.success(f"{len(df)} data points loaded for {ticker}")
 
 # --- Tabs ---
-tab1, tab2, tab3, tab4 = st.tabs([
-    "Technical Indicators", "Linear Regression",
-    "Logistic Regression", "Signal Dashboard"
-])
+tab1, tab2 = st.tabs(["Linear Regression", "Logistic Regression"])
 
-# === Tab 1: Technical Indicators ===
+# === Tab 1: Linear Regression ===
 with tab1:
-    for ind in ["MACD", "RSI", "MFI", "BB"]:
-        try:
-            fig = indicator_subplot(df, ind)
-            st.plotly_chart(fig, use_container_width=True)
-        except Exception as e:
-            st.warning(f"Could not render {ind}: {e}")
-
-# === Tab 2: Linear Regression ===
-with tab2:
     st.subheader("OLS Linear Regression")
 
-    shift_lr = st.slider("Shift (days)", 1, 30, 5, key="lr_shift")
+    shift_lr = st.slider("Shift (days)", 1, 30, 5, key="mi_lr_shift")
 
     if not features:
         st.warning("Select at least one feature")
@@ -130,14 +110,12 @@ with tab2:
         with col3:
             st.metric("Intercept", f"{result['intercept']:.4f}")
 
-        # Coefficient table
         coef_df = pd.DataFrame({
             "Feature": list(result["coefficients"].keys()),
             "Coefficient": list(result["coefficients"].values()),
         })
         st.dataframe(coef_df, use_container_width=True, hide_index=True)
 
-        # Validation plots
         st.subheader("Residual Diagnostics")
         c1, c2, c3 = st.columns(3)
 
@@ -173,8 +151,8 @@ with tab2:
         st.error(f"Linear Regression failed: {e}")
 
 
-# === Tab 3: Logistic Regression ===
-with tab3:
+# === Tab 2: Logistic Regression ===
+with tab2:
     st.subheader("Logistic Regression")
 
     if not features:
@@ -184,7 +162,6 @@ with tab3:
     try:
         logreg = LogisticRegression(df, features=features)
 
-        # AUC Optimization
         st.markdown("**AUC Optimization (Train Set)**")
         train_df_all, _ = logreg.train_test_split(train_size=0.7)
 
@@ -202,24 +179,20 @@ with tab3:
                               xaxis_title="Shift", yaxis_title="AUC")
         st.plotly_chart(fig_auc, use_container_width=True)
 
-        # Re-fit with optimal shift
         logreg2 = LogisticRegression(df, features=features)
         logreg2.add_target(shift=best_shift)
         train_df, test_df = logreg2.train_test_split(train_size=0.7)
 
-        # Train
         train_result = logreg2.fit(train_df)
         roc_train = logreg2.get_roc_data()
         cm_train = logreg2.get_confusion_matrix().values
 
-        # Predict on test
         test_probs = logreg2.predict(test_df)
         test_target = test_df["Target"].loc[test_probs.index]
         test_auc = roc_auc_score(test_target, test_probs)
         test_fpr, test_tpr, _ = roc_curve(test_target, test_probs)
         test_cm = confusion_matrix(test_target, (test_probs > 0.5).astype(int))
 
-        # Display side by side
         st.divider()
         st.subheader("Train vs Test Comparison")
 
@@ -243,32 +216,3 @@ with tab3:
     except Exception as e:
         st.error(f"Logistic Regression failed: {e}")
 
-
-# === Tab 4: Signal Dashboard ===
-with tab4:
-    st.subheader("Signal Dashboard")
-
-    # Generate signals from raw data (need enough rows)
-    try:
-        sig_rsi = rsi_signal(df_raw)
-        sig_log = logreg_signal(df_raw)
-
-        c1, c2 = st.columns(2)
-        with c1:
-            st.markdown("#### RSI + MACD Signal")
-            render_signal_badge(sig_rsi["signal"], sig_rsi.get("reason", ""))
-            if sig_rsi.get("rsi") is not None:
-                st.markdown(f"**RSI:** {sig_rsi['rsi']:.1f}")
-            if sig_rsi.get("macd_hist") is not None:
-                st.markdown(f"**MACD Hist:** {sig_rsi['macd_hist']:.4f}")
-
-        with c2:
-            st.markdown("#### LogReg Signal")
-            render_signal_badge(sig_log["signal"], sig_log.get("reason", ""))
-            if sig_log.get("probability") is not None:
-                st.markdown(f"**P(Up):** {sig_log['probability']:.3f}")
-            if sig_log.get("auc") is not None:
-                st.markdown(f"**AUC:** {sig_log['auc']:.3f}")
-
-    except Exception as e:
-        st.warning(f"Could not generate signals: {e}")
