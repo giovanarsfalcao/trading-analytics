@@ -439,3 +439,56 @@ def confusion_matrix_chart(cm, title: str = "Confusion Matrix") -> go.Figure:
         height=350,
     )
     return fig
+
+
+def monte_carlo_chart(
+        mc_result: dict,
+        num_days: int,
+        n_display: int = 200,
+        title: str = "Monte Carlo Simulation",
+) -> go.Figure:
+    """Simulated price paths with confidence band and median."""
+    paths = mc_result["paths"]
+    x = list(range(num_days))
+
+    fig = go.Figure()
+
+    # Sample of individual paths (semitransparent)
+    rng = np.random.default_rng(42)
+    sample_idx = rng.choice(paths.shape[1], size=min(n_display, paths.shape[1]), replace=False)
+    for i in sample_idx:
+        fig.add_trace(go.Scatter(
+            x=x, y=paths[:, i],
+            mode="lines",
+            line=dict(color=COLORS["blue"], width=0.5),
+            opacity=0.12,
+            showlegend=False,
+            hoverinfo="skip",
+        ))
+
+    # Confidence band (filled area)
+    fig.add_trace(go.Scatter(
+        x=x + x[::-1],
+        y=list(mc_result["upper"]) + list(mc_result["lower"][::-1]),
+        fill="toself",
+        fillcolor="rgba(255,71,87,0.15)",
+        line=dict(color="rgba(0,0,0,0)"),
+        name="Confidence Band",
+    ))
+
+    # Median path
+    fig.add_trace(go.Scatter(
+        x=x, y=mc_result["median"],
+        line=dict(color=COLORS["white"], width=2),
+        name="Median",
+    ))
+
+    fig.add_hline(y=1.0, line_color=COLORS["gray"], line_dash="dash")
+    fig.update_layout(
+        **CHART_LAYOUT,
+        title=title,
+        xaxis_title="Trading Days",
+        yaxis_title="Portfolio Value (normalized)",
+        hovermode="x unified",
+    )
+    return fig

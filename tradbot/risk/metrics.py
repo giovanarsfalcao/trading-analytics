@@ -260,3 +260,38 @@ def calculate_cvar(
 ) -> float:
     var = calculate_var(returns, confidence_level)
     return returns[returns <= var].mean()
+
+
+def monte_carlo_simulation(
+        returns: Union[pd.Series, np.ndarray],
+        num_simulations: int=1000,
+        num_days: int=252,
+        confidence_level: float=0.95,
+) -> dict:
+    mu = float(np.mean(returns))
+    sigma = float(np.std(returns))
+
+    shocks = np.random.normal(
+        loc=(mu - 0.5 * sigma**2),
+        scale=sigma,
+        size=(num_days, num_simulations),
+    )
+    paths = np.exp(np.cumsum(shocks, axis=0))
+
+    final_values = paths[-1]
+    var_sim = np.percentile(final_values, (1 - confidence_level) * 100)
+    cvar_sim = float(final_values[final_values <= var_sim].mean())
+
+    lower = np.percentile(paths, (1 - confidence_level) * 100, axis=1)
+    upper = np.percentile(paths, confidence_level * 100, axis=1)
+
+    return {
+        "paths": paths,
+        "median": np.median(paths, axis=1),
+        "lower": lower,
+        "upper": upper,
+        "final_values": final_values,
+        "var_simulated": float(var_sim),
+        "cvar_simulated": cvar_sim,
+        "prob_loss": float((final_values < 1.0).mean()),
+    }

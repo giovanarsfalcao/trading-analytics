@@ -13,8 +13,9 @@ from tradbot.risk.metrics import (
     calculate_annualized_return, calculate_annualized_volatility,
     calculate_sortino_ratio, calculate_cvar,
     calculate_beta, calculate_alpha,
+    monte_carlo_simulation,
 )
-from components.charts import drawdown_chart, return_distribution, rolling_volatility, rolling_sharpe_chart, monthly_returns_heatmap
+from components.charts import drawdown_chart, return_distribution, rolling_volatility, rolling_sharpe_chart, monthly_returns_heatmap, monte_carlo_chart
 from components.kpi_cards import render_kpi_row
 
 
@@ -27,6 +28,10 @@ with st.sidebar:
     benchmark = st.text_input("Benchmark", value="SPY", key="risk_benchmark")
     period = st.selectbox("Period", ["1y", "2y", "5y", "max"], index=2, key="risk_period")
     vol_window = st.slider("Volatility Window (days)", 10, 90, 30, key="risk_vol_window")
+    st.divider()
+    st.subheader("Monte Carlo")
+    num_simulations = st.slider("Simulations", 100, 5000, 1000, step=100, key="risk_mc_sims")
+    forecast_days = st.slider("Forecast Days", 30, 504, 252, step=10, key="risk_mc_days")
 
 # --- Load Data ---
 @st.cache_data(ttl=300)
@@ -58,6 +63,8 @@ ann_ret = calculate_annualized_return(returns)
 ann_vol = calculate_annualized_volatility(returns)
 sortino = calculate_sortino_ratio(returns)
 cvar_95 = calculate_cvar(returns, 0.95)
+
+mc = monte_carlo_simulation(returns, num_simulations, forecast_days)
 
 beta, alpha = None, None
 if df_bench is not None:
@@ -106,6 +113,23 @@ with col2:
     st.subheader("Rolling Volatility")
     fig_vol = rolling_volatility(returns, window=vol_window)
     st.plotly_chart(fig_vol, use_container_width=True)
+
+st.divider()
+
+# --- Monte Carlo Simulation ---
+st.subheader("Monte Carlo Simulation")
+mc_kpis = [
+    {"label": "Median End Value", "value": f"{float(mc['median'][-1]):.3f}"},
+    {"label": "Simulated VaR", "value": f"{mc['var_simulated'] - 1:.2%}"},
+    {"label": "Simulated CVaR", "value": f"{mc['cvar_simulated'] - 1:.2%}"},
+    {"label": "P(Loss)", "value": f"{mc['prob_loss']:.1%}"},
+]
+render_kpi_row(mc_kpis)
+fig_mc = monte_carlo_chart(
+    mc, forecast_days,
+    title=f"Monte Carlo – {ticker} ({num_simulations:,} Simulations, {forecast_days}d)",
+)
+st.plotly_chart(fig_mc, use_container_width=True)
 
 st.divider()
 
