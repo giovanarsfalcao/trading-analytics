@@ -52,7 +52,6 @@ with st.sidebar:
 
 # --- Navigation ---
 welcome     = st.Page("pages/0_Welcome.py",               title="Welcome",              icon=":material/home:")
-overview    = st.Page("pages/1_Overview.py",              title="Overview",             icon=":material/dashboard:")
 technical   = st.Page("pages/2_Technical_Analysis.py",   title="Technical Analysis",   icon=":material/show_chart:")
 fundamental = st.Page("pages/3_Fundamental_Analysis.py", title="Fundamental Analysis", icon=":material/bar_chart:")
 risk        = st.Page("pages/4_Risk.py",                  title="Risk Management",      icon=":material/shield:")
@@ -63,7 +62,7 @@ portfolio   = st.Page("pages/7_Portfolio.py",             title="Portfolio",    
 nav = st.navigation(
     {
         "Start":        [welcome],
-        "Analysis":     [overview, technical, fundamental, risk],
+        "Analysis":     [technical, fundamental, risk],
         "Research":     [models, backtest],
         "Optimization": [portfolio],
     }

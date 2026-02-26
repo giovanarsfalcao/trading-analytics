@@ -43,19 +43,6 @@ st.divider()
 # --- Page Overview ---
 st.subheader("What each page does")
 
-with st.expander("📊  Overview – At a Glance", expanded=False):
-    st.markdown("""
-**Best for:** Quick snapshot of a single asset.
-
-Shows the most important numbers at a glance:
-- **KPI cards** – Last close price, Sharpe ratio, max drawdown, VaR, annualized return
-- **Equity curve** – Cumulative return over the selected period
-- **Drawdown chart** – Shows how far below the peak the price fell
-- **Model signals** – Current BUY / HOLD / SELL signal from RSI+MACD and Logistic Regression
-
-**Inputs:** Ticker, Time period (1y / 2y / 5y / max)
-    """)
-
 with st.expander("📈  Technical Analysis – Chart Indicators", expanded=False):
     st.markdown("""
 **Best for:** Reading price momentum, trend direction, and volatility from charts.
@@ -149,7 +136,7 @@ st.subheader("Quick start examples")
 st.markdown("""
 | Use case | Ticker input | Suggested page |
 |----------|-------------|---------------|
-| Single stock deep-dive | `AAPL` | Overview → Risk |
+| Single stock deep-dive | `AAPL` | Risk Management |
 | Fundamental value check | `AAPL` | Fundamental Analysis |
 | Chart momentum read | `NVDA` | Technical Analysis |
 | ML signal research | `SPY` | Model Insights |
