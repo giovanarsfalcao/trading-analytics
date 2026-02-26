@@ -43,6 +43,21 @@ st.divider()
 # --- Page Overview ---
 st.subheader("What each page does")
 
+with st.expander("⭐  Stock Rating – Algorithmic Score", expanded=False):
+    st.markdown("""
+**Best for:** Quick overall assessment before diving into detail pages.
+
+Three scored dimensions combined into one overall rating:
+- **Technical Score** – RSI, MACD, Bollinger Bands, MFI weighted equally
+- **Fundamental Score** – P/E, Revenue Growth, ROE, Debt/Equity (stocks only; N/A for ETFs)
+- **ML Score** – Logistic Regression probability of upward movement
+
+Each score ranges **0–100** with labels: Strong Sell / Sell / Neutral / Buy / Strong Buy.
+Includes a natural language summary and a detailed score breakdown table.
+
+**Inputs:** Ticker (global sidebar)
+    """)
+
 with st.expander("📈  Technical Analysis – Chart Indicators", expanded=False):
     st.markdown("""
 **Best for:** Reading price momentum, trend direction, and volatility from charts.
