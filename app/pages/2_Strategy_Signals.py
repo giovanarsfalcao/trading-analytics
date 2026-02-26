@@ -25,6 +25,7 @@ import plotly.graph_objects as go
 
 
 st.header("Model Lab")
+st.caption("Configure technical indicators and train regression models to generate trading signals.")
 
 # --- Sidebar ---
 with st.sidebar:

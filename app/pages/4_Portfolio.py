@@ -20,12 +20,15 @@ with st.sidebar:
     portfolio_tickers = st.text_input(
         "Tickers (comma separated)",
         value="AAPL, MSFT, GOOGL, AMZN, META",
+        placeholder="e.g. AAPL, MSFT, GOOGL",
+        help="Enter 2–10 comma-separated tickers",
         key="port_tickers",
     )
-    risk_free_rate = st.number_input(
-        "Risk-Free Rate", value=0.02, step=0.005, format="%.3f", key="port_rfr"
-    )
-    n_frontier_points = st.slider("Frontier Points", 10, 100, 50, key="port_frontier")
+    with st.expander("Advanced Settings"):
+        risk_free_rate = st.number_input(
+            "Risk-Free Rate", value=0.02, step=0.005, format="%.3f", key="port_rfr"
+        )
+        n_frontier_points = st.slider("Frontier Points", 10, 100, 50, key="port_frontier")
 
 tickers = [t.strip() for t in portfolio_tickers.split(",") if t.strip()]
 

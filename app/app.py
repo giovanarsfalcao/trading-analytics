@@ -24,6 +24,7 @@ st.set_page_config(
 )
 
 # --- Navigation ---
+welcome = st.Page("pages/0_Welcome.py", title="Welcome", icon=":material/home:")
 overview = st.Page("pages/1_Overview.py", title="Overview", icon=":material/dashboard:")
 strategy = st.Page("pages/2_Strategy_Signals.py", title="Strategy & Signals", icon=":material/show_chart:")
 risk = st.Page("pages/3_Risk.py", title="Risk Management", icon=":material/shield:")
@@ -32,6 +33,7 @@ backtest = st.Page("pages/5_Backtesting.py", title="Backtesting", icon=":materia
 
 nav = st.navigation(
     {
+        "Start": [welcome],
         "Analysis": [overview, strategy, risk],
         "Optimization": [portfolio, backtest],
     }

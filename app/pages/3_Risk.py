@@ -24,14 +24,13 @@ st.header("Risk Management")
 # --- Sidebar ---
 with st.sidebar:
     st.subheader("Settings")
-    ticker = st.text_input("Ticker", value="SPY", key="risk_ticker")
-    benchmark = st.text_input("Benchmark", value="SPY", key="risk_benchmark")
+    ticker = st.text_input("Ticker", value="SPY", placeholder="e.g. AAPL, SPY, MSFT", key="risk_ticker")
+    benchmark = st.text_input("Benchmark", value="SPY", help="Used for Beta and Alpha calculation", key="risk_benchmark")
     period = st.selectbox("Period", ["1y", "2y", "5y", "max"], index=2, key="risk_period")
     vol_window = st.slider("Volatility Window (days)", 10, 90, 30, key="risk_vol_window")
-    st.divider()
-    st.subheader("Monte Carlo")
-    num_simulations = st.slider("Simulations", 100, 5000, 1000, step=100, key="risk_mc_sims")
-    forecast_days = st.slider("Forecast Days", 30, 504, 252, step=10, key="risk_mc_days")
+    with st.expander("Monte Carlo Settings"):
+        num_simulations = st.slider("Simulations", 100, 5000, 1000, step=100, key="risk_mc_sims")
+        forecast_days = st.slider("Forecast Days", 30, 504, 252, step=10, key="risk_mc_days")
 
 # --- Load Data ---
 @st.cache_data(ttl=300)

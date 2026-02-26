@@ -28,8 +28,14 @@ with st.sidebar:
     if strategy_name == "Logistic Regression":
         st.divider()
         st.subheader("LogReg Parameters")
-        logreg_shift = st.slider("Shift (days)", 1, 20, 5, key="bt_lr_shift")
-        logreg_threshold = st.slider("Threshold", 0.50, 0.70, 0.55, 0.01, key="bt_lr_thresh")
+        logreg_shift = st.slider(
+            "Shift (days)", 1, 20, 5, key="bt_lr_shift",
+            help="How many days ahead the model tries to predict. Higher = longer-term signal.",
+        )
+        logreg_threshold = st.slider(
+            "Threshold", 0.50, 0.70, 0.55, 0.01, key="bt_lr_thresh",
+            help="Minimum predicted probability to trigger a BUY or SELL signal (e.g. 0.55 = 55% confidence).",
+        )
 
 # --- Load Data ---
 @st.cache_data(ttl=300)
