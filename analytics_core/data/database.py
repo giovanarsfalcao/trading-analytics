@@ -5,7 +5,7 @@ SQLAlchemy ORM models für Trading Data Persistence.
 Nutzt SQLite (kein Server nötig, file-based).
 
 Verwendung:
-    from tradbot.data import create_tables
+    from analytics_core.data import create_tables
     create_tables()  # Erstellt alle Tabellen
 """
 
@@ -96,7 +96,7 @@ class PerformanceMetric(Base):
     timestamp = Column(DateTime, default=datetime.utcnow, index=True)
     ticker = Column(String(10), nullable=True)  # NULL = Portfolio-Level
 
-    # Core Metrics (aus tradbot.risk)
+    # Core Metrics (aus analytics_core.risk)
     sharpe_ratio = Column(Float)
     max_drawdown = Column(Float)
     var_95 = Column(Float)

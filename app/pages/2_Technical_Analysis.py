@@ -6,7 +6,7 @@ import streamlit as st
 import yfinance as yf
 import yfinance_fix
 
-from tradbot.strategy import TechnicalIndicators
+from analytics_core.strategy import TechnicalIndicators
 from components.charts import indicator_subplot
 
 

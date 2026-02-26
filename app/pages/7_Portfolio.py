@@ -7,7 +7,7 @@ import pandas as pd
 import yfinance as yf
 import yfinance_fix
 
-from tradbot.portfolio import optimize_max_sharpe, optimize_min_volatility, get_efficient_frontier
+from analytics_core.portfolio import optimize_max_sharpe, optimize_min_volatility, get_efficient_frontier
 from components.charts import weight_bar_chart, efficient_frontier, allocation_donut, correlation_heatmap, COLORS
 from components.kpi_cards import render_kpi_row
 

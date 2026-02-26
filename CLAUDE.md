@@ -21,25 +21,26 @@ trading-analytics/
 ├── app/                    # Streamlit web application
 │   ├── app.py              # Main dashboard
 │   └── pages/              # Overview, Model Lab, Risk, Portfolio, Backtesting
-├── tradbot/                # Core Python package
+├── analytics_core/         # Core Python package
 │   ├── data/               # Database (SQLAlchemy) + yfinance data fetching
 │   ├── strategy/           # Technical indicators + regression models
 │   ├── strategies/         # RSI+MACD and LogReg strategy definitions
 │   ├── risk/               # Sharpe, VaR, max drawdown calculations
 │   ├── portfolio/          # Markowitz optimization (pyportfolioopt)
-│   └── backtest/           # Strategy vs. buy & hold engine
+│   ├── backtest/           # Strategy vs. buy & hold engine
+│   └── rating.py           # Stock scoring logic (technical, fundamental, ML)
 └── notebooks/              # Research notebooks (indicators, regression analysis)
 ```
 
 ## Key Modules
 
-- **tradbot/data/yfinance_fix.py** - Rate limiting workaround using curl_cffi to impersonate Chrome
-- **tradbot/data/database.py** - SQLAlchemy ORM models (MarketData, PortfolioSnapshot, PerformanceMetric)
-- **tradbot/data/crud.py** - CRUD operations for all database entities
-- **tradbot/strategy/indicators.py** - Chainable technical indicators (MACD, RSI, MFI, Bollinger Bands)
-- **tradbot/strategy/models.py** - LinearRegression (OLS) and LogisticRegression for price prediction
-- **tradbot/risk/metrics.py** - Risk calculations (Sharpe ratio, VaR, max drawdown)
-- **tradbot/portfolio/optimizer.py** - Portfolio optimization (max Sharpe, min volatility, efficient frontier)
+- **analytics_core/data/yfinance_fix.py** - Rate limiting workaround using curl_cffi to impersonate Chrome
+- **analytics_core/data/database.py** - SQLAlchemy ORM models (MarketData, PortfolioSnapshot, PerformanceMetric)
+- **analytics_core/data/crud.py** - CRUD operations for all database entities
+- **analytics_core/strategy/indicators.py** - Chainable technical indicators (MACD, RSI, MFI, Bollinger Bands)
+- **analytics_core/strategy/models.py** - LinearRegression (OLS) and LogisticRegression for price prediction
+- **analytics_core/risk/metrics.py** - Risk calculations (Sharpe ratio, VaR, max drawdown)
+- **analytics_core/portfolio/optimizer.py** - Portfolio optimization (max Sharpe, min volatility, efficient frontier)
 
 ## Critical Guidelines
 

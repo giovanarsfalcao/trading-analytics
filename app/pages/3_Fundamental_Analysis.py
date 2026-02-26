@@ -2,40 +2,14 @@
 Fundamental Analysis - Valuation, Earnings, Cash Flow, Balance Sheet
 """
 
-import math
 import streamlit as st
 import pandas as pd
 import yfinance as yf
 import yfinance_fix
 import plotly.graph_objects as go
 
-from components.kpi_cards import render_kpi_row
-
-COLORS = {"blue": "#4f8ef7", "green": "#26c987", "red": "#ff4757", "gray": "#8a8a8a"}
-CHART_LAYOUT = dict(
-    template="plotly_dark",
-    paper_bgcolor="#0e1117",
-    plot_bgcolor="#0e1117",
-    font=dict(color="#fafafa"),
-    margin=dict(l=40, r=20, t=40, b=40),
-)
-
-
-def fmt(val, pct=False, bn=False, x=False):
-    if val is None:
-        return "N/A"
-    try:
-        if math.isnan(float(val)):
-            return "N/A"
-    except (TypeError, ValueError):
-        return "N/A"
-    if bn:
-        return f"${float(val) / 1e9:.2f}B"
-    if pct:
-        return f"{float(val):.2%}"
-    if x:
-        return f"{float(val):.1f}x"
-    return f"{float(val):.2f}"
+from components.kpi_cards import render_kpi_row, fmt
+from components.charts import CHART_LAYOUT, COLORS
 
 
 st.header("Fundamental Analysis")

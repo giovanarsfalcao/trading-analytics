@@ -5,7 +5,7 @@ Einfache Funktionen zum Speichern/Laden zwischen pandas und SQLite.
 Integriert mit bestehenden Modulen (yfinance, risk metrics, portfolio).
 
 Verwendung:
-    from tradbot.data import save_market_data, load_market_data
+    from analytics_core.data import save_market_data, load_market_data
 
     # Nach yf.download
     df = yf.download("AAPL", ...)

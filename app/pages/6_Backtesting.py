@@ -7,9 +7,9 @@ import pandas as pd
 import yfinance as yf
 import yfinance_fix
 
-from tradbot.strategies.strategy_rsi_macd import generate_strategy as rsi_strategy
-from tradbot.strategies.strategy_logreg import generate_strategy as logreg_strategy
-from tradbot.backtest import Backtest
+from analytics_core.strategies.strategy_rsi_macd import generate_strategy as rsi_strategy
+from analytics_core.strategies.strategy_logreg import generate_strategy as logreg_strategy
+from analytics_core.backtest import Backtest
 from components.charts import equity_curve, signal_distribution_chart, COLORS
 from components.kpi_cards import render_metric_table
 

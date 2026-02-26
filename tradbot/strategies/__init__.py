@@ -1,1 +1,0 @@
-from tradbot.strategies.strategy_rsi_macd import generate_signal

@@ -8,7 +8,7 @@ import numpy as np
 import yfinance as yf
 import yfinance_fix
 
-from tradbot.risk.metrics import (
+from analytics_core.risk.metrics import (
     calculate_sharpe_ratio, calculate_max_drawdown, calculate_var,
     calculate_annualized_return, calculate_annualized_volatility,
     calculate_sortino_ratio, calculate_cvar,

@@ -2,11 +2,11 @@
 Backtest Engine
 
 Compares a strategy (position series) against Buy & Hold.
-Reuses tradbot.risk.metrics for all calculations.
+Reuses analytics_core.risk.metrics for all calculations.
 """
 
 import pandas as pd
-from tradbot.risk.metrics import (
+from analytics_core.risk.metrics import (
     calculate_sharpe_ratio,
     calculate_max_drawdown,
     calculate_var,

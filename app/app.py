@@ -10,7 +10,7 @@ Run: streamlit run app/app.py
 import sys
 import os
 
-# Ensure tradbot package is importable from any working directory
+# Ensure analytics_core package is importable from any working directory
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 import streamlit as st

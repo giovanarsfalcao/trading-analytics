@@ -78,6 +78,25 @@ def render_connection_badge(connected: bool):
         )
 
 
+def fmt(val, pct=False, bn=False, x=False) -> str:
+    """Format a numeric value for display. Returns 'N/A' for missing/NaN values."""
+    import math
+    if val is None:
+        return "N/A"
+    try:
+        if math.isnan(float(val)):
+            return "N/A"
+    except (TypeError, ValueError):
+        return "N/A"
+    if bn:
+        return f"${float(val) / 1e9:.2f}B"
+    if pct:
+        return f"{float(val):.2%}"
+    if x:
+        return f"{float(val):.1f}x"
+    return f"{float(val):.2f}"
+
+
 def render_metric_table(strategy_metrics: dict, buyhold_metrics: dict):
     """
     Render a comparison table of strategy vs buy & hold metrics.

@@ -3,9 +3,9 @@ Quick Backtest Test - Run with: python -m tradbot.backtest.test_backtest
 """
 
 import yfinance as yf
-from tradbot.data import YFinanceFix
-from tradbot.strategies.strategy_rsi_macd import generate_strategy as rsi_strategy
-from tradbot.backtest import Backtest
+from analytics_core.data import YFinanceFix
+from analytics_core.strategies.strategy_rsi_macd import generate_strategy as rsi_strategy
+from analytics_core.backtest import Backtest
 
 # Patch yfinance
 YFinanceFix()

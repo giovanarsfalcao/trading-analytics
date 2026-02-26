@@ -5,7 +5,7 @@ Problem: Yahoo Finance blockiert Anfragen die wie Bots aussehen.
 Lösung: Session die sich als Chrome Browser tarnt.
 
 Verwendung:
-    from tradbot.data import YFinanceFix
+    from analytics_core.data import YFinanceFix
 
     yf_fix = YFinanceFix()
     df = yf.download("AAPL", session=yf_fix.session)
@@ -76,7 +76,7 @@ class YFinanceFix:
             self.session = None
 
 
-# from tradbot.data import YFinanceFix
+# from analytics_core.data import YFinanceFix
 # import yfinance as yf
 
 # # Session erstellen
