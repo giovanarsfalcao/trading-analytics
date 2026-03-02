@@ -1,0 +1,11 @@
+.git
+.claude
+.devcontainer
+notebooks
+pyvenv.cfg
+__pycache__
+*.pyc
+.streamlit/config.toml
+configuration/
+share/
+man/
