@@ -6,7 +6,7 @@ Reuses analytics_core.metrics for all calculations.
 """
 
 import pandas as pd
-from analytics_core.metrics import (
+from analytics_core.risk_metrics import (
     calculate_sharpe_ratio,
     calculate_max_drawdown,
     calculate_var,
