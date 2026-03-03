@@ -2,14 +2,17 @@
 streamlit==1.52.2
 pandas==2.3.3
 numpy==2.4.0
-matplotlib==3.10.8
-seaborn==0.13.2
 plotly==5.24.1
 
 # Data
 yfinance==0.2.57
 curl_cffi==0.14.0
 
+# Technical Analysis
+ta>=0.11.0
+
 # ML/Stats
-statsmodels==0.14.6
 scikit-learn==1.8.0
+
+# Export
+kaleido>=0.2.1
