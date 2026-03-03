@@ -1,27 +1,15 @@
 # Core
-streamlit
-pandas
-numpy
-matplotlib
-seaborn
-plotly
+streamlit==1.52.2
+pandas==2.3.3
+numpy==2.4.0
+matplotlib==3.10.8
+seaborn==0.13.2
+plotly==5.24.1
 
 # Data
-yfinance
-curl_cffi
+yfinance==0.2.57
+curl_cffi==0.14.0
 
 # ML/Stats
-statsmodels
-scikit-learn
-
-# Portfolio Optimization
-pyportfolioopt
-
-# Database
-sqlalchemy
-
-# Excel Export
-openpyxl
-
-# Streamlit compatibility
-altair<5
+statsmodels==0.14.6
+scikit-learn==1.8.0

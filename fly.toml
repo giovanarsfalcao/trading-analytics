@@ -1,16 +1,30 @@
-# Fly.io Konfigurationsdatei
-app = "trading-analytics-app" # Diesen Namen beim ersten 'fly launch' anpassen
-primary_region = "fra" # Frankfurt (oder deine bevorzugte Region)
+# fly.toml app configuration file generated for trading-analytics on 2026-03-03T07:51:53-03:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'trading-analytics'
+primary_region = 'gru'
+
+[build]
 
 [http_service]
-  internal_port = 8501
+  internal_port = 8080
   force_https = true
-  auto_stop_machines = true
+  auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 0
-  processes = ["app"]
+  processes = ['app']
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/_stcore/health"
 
 [[vm]]
-  memory = "1gb" # Erhöht von 256MB auf 1GB für ML-Modelle und Datenanalyse
-  cpu_kind = "shared"
+  memory = '1gb'
+  cpu_kind = 'shared'
   cpus = 1
+  memory_mb = 1024

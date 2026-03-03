@@ -2,10 +2,12 @@
 .claude
 .devcontainer
 notebooks
-pyvenv.cfg
 __pycache__
 *.pyc
-.streamlit/config.toml
+pyvenv.cfg
 configuration/
 share/
 man/
+.env
+.venv
+.streamlit/secrets.toml
