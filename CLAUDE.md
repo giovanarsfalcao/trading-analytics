@@ -11,7 +11,7 @@ Trading Analytics is a quantitative research platform with a 5-stage workflow: E
 pip install -r app/requirements.txt
 
 # Run the Streamlit app
-streamlit run app/Home.py
+streamlit run app/app.py
 ```
 
 ## Architecture
@@ -19,10 +19,9 @@ streamlit run app/Home.py
 ```
 trading-analytics/
 ├── app/
-│   ├── Home.py                 # Entry point (streamlit run app/Home.py)
+│   ├── app.py                 # Entry point (streamlit run app/app.py)
 │   ├── requirements.txt        # Python dependencies
 │   └── pages/
-│       ├── 0_Welcome.py        # Getting started guide
 │       ├── 1_Explore.py        # Stage 1: Ticker analysis (price, indicators, fundamentals)
 │       ├── 2_Strategy.py       # Stage 2: Rule-based & ML signal generation
 │       ├── 3_Backtest.py       # Stage 3: Trade-by-trade backtesting
@@ -39,7 +38,7 @@ trading-analytics/
 │   ├── backtester.py           # Backtest engine with position sizing
 │   └── risk_analysis.py        # Risk metrics + Monte Carlo simulation
 ├── notebooks/                  # Research & development notebooks
-├── Dockerfile                  # Docker container (entry: app/Home.py)
+├── Dockerfile                  # Docker container (entry: app/app.py)
 ├── fly.toml                    # fly.io deployment config
 └── .github/workflows/
     └── fly-deploy.yml          # Auto-deploy on push to main

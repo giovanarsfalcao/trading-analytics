@@ -14,7 +14,7 @@ Quantitative research platform for strategy development, backtesting, and risk a
 
 ```bash
 pip install -r app/requirements.txt
-streamlit run app/Home.py
+streamlit run app/app.py
 ```
 
 ## Deployment
