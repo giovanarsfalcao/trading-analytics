@@ -182,4 +182,4 @@ with tab_fundamentals:
 # ── Navigation ──────────────────────────────────────────────────
 
 st.divider()
-st.page_link("pages/2_📈_Strategy.py", label="Continue to Strategy →", icon="📈")
+st.page_link("pages/2_Strategy.py", label="Continue to Strategy →", icon="📈")

@@ -23,7 +23,7 @@ st.header("🔄 Backtest")
 
 if not is_stage_complete(2):
     st.warning("Please complete the **Strategy** step first (generate signals).")
-    st.page_link("pages/2_📈_Strategy.py", label="Go to Strategy", icon="📈")
+    st.page_link("pages/2_Strategy.py", label="Go to Strategy", icon="📈")
     st.stop()
 
 ticker = get_state("ticker")
@@ -193,4 +193,4 @@ if st.button("Run Backtest", type="primary"):
 # ── Navigation ──────────────────────────────────────────────────
 
 st.divider()
-st.page_link("pages/4_⚠️_Risk_Analysis.py", label="Continue to Risk Analysis →", icon="⚠️")
+st.page_link("pages/4_Risk_Analysis.py", label="Continue to Risk Analysis →", icon="⚠️")

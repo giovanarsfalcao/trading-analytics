@@ -44,4 +44,4 @@ st.markdown(
     "Each stage builds on the previous one — work through them in order."
 )
 
-st.page_link("pages/1_📊_Explore.py", label="Start with Explore →", icon="📊")
+st.page_link("pages/1_Explore.py", label="Start with Explore →", icon="📊")

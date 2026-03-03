@@ -22,7 +22,7 @@ st.header("📈 Strategy Builder")
 
 if not is_stage_complete(1):
     st.warning("Please complete the **Explore** step first (load a ticker).")
-    st.page_link("pages/1_📊_Explore.py", label="Go to Explore", icon="📊")
+    st.page_link("pages/1_Explore.py", label="Go to Explore", icon="📊")
     st.stop()
 
 ticker = get_state("ticker")
@@ -186,4 +186,4 @@ with tab_ml:
 # ── Navigation ──────────────────────────────────────────────────
 
 st.divider()
-st.page_link("pages/3_🔄_Backtest.py", label="Continue to Backtest →", icon="🔄")
+st.page_link("pages/3_Backtest.py", label="Continue to Backtest →", icon="🔄")
