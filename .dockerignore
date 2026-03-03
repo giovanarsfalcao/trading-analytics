@@ -5,7 +5,6 @@ notebooks
 __pycache__
 *.pyc
 pyvenv.cfg
-configuration/
 share/
 man/
 .env

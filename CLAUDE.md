@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Trading Analytics is a quantitative research and analysis platform for strategy development, backtesting, and stock analysis. Built with Python + Streamlit, it provides technical indicators, regression models (OLS/Logistic), risk metrics, and strategy backtesting.
+Trading Analytics is a quantitative research platform with a 5-stage workflow: Explore → Strategy → Backtest → Risk Analysis → Report. Built with Python + Streamlit, it provides technical indicators, rule-based and ML trading strategies, trade-by-trade backtesting, and comprehensive risk analysis.
 
 ## Quick Start
 
@@ -11,41 +11,61 @@ Trading Analytics is a quantitative research and analysis platform for strategy 
 pip install -r app/requirements.txt
 
 # Run the Streamlit app
-streamlit run app/app.py
+streamlit run app/Home.py
 ```
 
 ## Architecture
 
 ```
 trading-analytics/
-├── app/                    # Streamlit web application
-│   ├── app.py              # Main dashboard + navigation
-│   ├── yfinance_fix.py     # Chrome session singleton for Yahoo Finance
-│   ├── pages/              # 0_Welcome, 1_Rating, 2_Technical, 3_Fundamental, 4_Risk, 5_Model, 6_Backtesting
-│   └── components/         # Shared chart builders (charts.py) + KPI helpers (kpi_cards.py)
-└── analytics_core/         # Core Python package
-    ├── rating.py           # Stock scoring logic (technical, fundamental, ML)
-    ├── strategy/           # Technical indicators + regression models
-    ├── strategies/         # RSI+MACD and LogReg strategy definitions
-    ├── risk/               # Sharpe, VaR, max drawdown calculations
-    └── backtest/           # Strategy vs. buy & hold engine
+├── app/
+│   ├── Home.py                 # Entry point (streamlit run app/Home.py)
+│   ├── requirements.txt        # Python dependencies
+│   └── pages/
+│       ├── 0_Welcome.py        # Getting started guide
+│       ├── 1_Explore.py        # Stage 1: Ticker analysis (price, indicators, fundamentals)
+│       ├── 2_Strategy.py       # Stage 2: Rule-based & ML signal generation
+│       ├── 3_Backtest.py       # Stage 3: Trade-by-trade backtesting
+│       ├── 4_Risk_Analysis.py  # Stage 4: Risk metrics & Monte Carlo
+│       └── 5_Report.py         # Stage 5: Summary & CSV export
+├── utils/
+│   ├── yfinance_fix.py         # Chrome session singleton for Yahoo Finance
+│   ├── state_manager.py        # Session state management (stage gating)
+│   ├── data_fetcher.py         # yfinance data fetching with caching
+│   ├── indicators.py           # Technical indicators via 'ta' library
+│   ├── fundamentals.py         # Fundamental data via yfinance
+│   ├── charts.py               # Plotly chart functions + KPI helpers
+│   ├── strategies.py           # 4 rule-based + 3 ML strategies
+│   ├── backtester.py           # Backtest engine with position sizing
+│   └── risk_analysis.py        # Risk metrics + Monte Carlo simulation
+├── notebooks/                  # Research & development notebooks
+├── Dockerfile                  # Docker container (entry: app/Home.py)
+├── fly.toml                    # fly.io deployment config
+└── .github/workflows/
+    └── fly-deploy.yml          # Auto-deploy on push to main
 ```
 
 ## Key Modules
 
-- **app/yfinance_fix.py** - Rate limiting workaround using curl_cffi to impersonate Chrome
-- **analytics_core/rating.py** - Stock scoring (0–100) across technical, fundamental, and ML dimensions
-- **analytics_core/strategy/indicators.py** - Chainable technical indicators (MACD, RSI, MFI, Bollinger Bands)
-- **analytics_core/strategy/models.py** - LinearRegression (OLS) and LogisticRegression for price prediction
-- **analytics_core/risk/metrics.py** - Risk calculations (Sharpe ratio, VaR, max drawdown, Monte Carlo)
-- **analytics_core/backtest/engine.py** - Backtest engine (strategy vs. buy & hold)
-- **analytics_core/strategies/strategy_logreg.py** - LogReg signal generator (used by Rating + Backtesting)
-- **analytics_core/strategies/strategy_rsi_macd.py** - RSI+MACD signal generator (used by Backtesting)
+- **utils/yfinance_fix.py** - Rate limiting workaround using curl_cffi to impersonate Chrome
+- **utils/state_manager.py** - Session state with stage gating (each stage requires previous completion)
+- **utils/indicators.py** - SMA, EMA, RSI, MACD, Bollinger Bands, ATR, Stochastic, MFI via `ta` library
+- **utils/strategies.py** - SMA Crossover, RSI, MACD Crossover, Bollinger Breakout + Random Forest, Gradient Boosting, Logistic Regression
+- **utils/backtester.py** - Trade-by-trade engine with fixed/percentage/Kelly position sizing and commission
+- **utils/risk_analysis.py** - Sharpe, Sortino, VaR, CVaR, Beta, Alpha, Calmar, Information Ratio + Monte Carlo
+- **utils/charts.py** - All Plotly charts, KPI cards, formatting helpers
+
+## Deployment
+
+- **fly.io** with GitHub Actions auto-deploy on push to `main`
+- Workflow: `.github/workflows/fly-deploy.yml`
+- Requires `FLY_API_TOKEN` as GitHub Secret
+- Region: `gru` (São Paulo), 1GB RAM, shared CPU
 
 ## Critical Guidelines
 
 ### DO NOT break the yfinance fix
-`app/yfinance_fix.py` is critical for data fetching. It uses `curl_cffi` with Chrome impersonation to bypass Yahoo Finance rate limiting. Never modify this without understanding the session/cookie handling.
+`utils/yfinance_fix.py` is critical for data fetching. It uses `curl_cffi` with Chrome impersonation to bypass Yahoo Finance rate limiting. Never modify this without understanding the session/cookie handling.
 
 ### Ask before implementing new features
 Discuss the approach before writing code for new functionality. Don't assume an implementation path.
@@ -56,6 +76,7 @@ In Streamlit code, catch exceptions and display readable error messages to the u
 ### Be careful with these fragile areas
 1. **Indicator calculations** - Math must match standard technical analysis definitions exactly.
 2. **yfinance_fix session** - All `yf.download` and `yf.Ticker` calls must use `session=yfinance_fix.chrome_session`.
+3. **Look-ahead bias** - All strategy signals must be shifted by 1 bar. ML models use temporal train/test splits (no shuffling).
 
 ## Code Style
 
