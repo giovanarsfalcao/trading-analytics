@@ -1,8 +1,3 @@
-# fly.toml app configuration file generated for trading-analytics on 2026-03-03T07:51:53-03:00
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
-
 app = 'trading-analytics'
 primary_region = 'gru'
 
@@ -17,11 +12,11 @@ primary_region = 'gru'
   processes = ['app']
 
   [[http_service.checks]]
-    grace_period = "10s"
+    grace_period = "30s"
     interval = "30s"
     method = "GET"
     timeout = "5s"
-    path = "/_stcore/health"
+    path = "/api/health"
 
 [[vm]]
   memory = '1gb'

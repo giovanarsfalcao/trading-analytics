@@ -1,9 +1,7 @@
-import streamlit as st
 import yfinance as yf
 from utils import yfinance_fix
 
 
-@st.cache_data(ttl=600, show_spinner=False)
 def fetch_fundamentals(ticker: str) -> dict:
     """Fetch fundamental data for a ticker. Returns empty dict on failure."""
     try:

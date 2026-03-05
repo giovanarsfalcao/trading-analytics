@@ -1,10 +1,8 @@
-import streamlit as st
 import pandas as pd
 import yfinance as yf
 from utils import yfinance_fix
 
 
-@st.cache_data(ttl=300, show_spinner=False)
 def fetch_price_data(ticker: str, period: str = "2y", interval: str = "1d") -> pd.DataFrame:
     """Download OHLCV data. Returns empty DataFrame on failure."""
     try:
@@ -28,7 +26,6 @@ def fetch_price_data(ticker: str, period: str = "2y", interval: str = "1d") -> p
     return df
 
 
-@st.cache_data(ttl=300, show_spinner=False)
 def fetch_benchmark_data(period: str = "2y") -> pd.DataFrame:
     """Fetch S&P 500 data for benchmark comparison."""
     return fetch_price_data("^GSPC", period=period)
