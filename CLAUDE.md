@@ -2,57 +2,73 @@
 
 ## Project Overview
 
-Trading Analytics is a quantitative research platform with a 5-stage workflow: Explore → Strategy → Backtest → Risk Analysis → Report. Built with Python + Streamlit, it provides technical indicators, rule-based and ML trading strategies, trade-by-trade backtesting, and comprehensive risk analysis.
+Trading Analytics is a quantitative research platform with a 5-stage workflow: Explore → Strategy → Backtest → Risk Analysis → Report. Built with Next.js 16 (frontend) + FastAPI (backend) + shared Python utils for financial calculations.
 
 ## Quick Start
 
 ```bash
-# Install dependencies
-pip install -r app/requirements.txt
+# Backend
+pip install -r api/requirements.txt
+uvicorn api.main:app --reload --port 8000
 
-# Run the Streamlit app
-streamlit run app/app.py
+# Frontend (separate terminal)
+cd frontend
+npm install
+npm run dev
 ```
+
+App runs at `http://localhost:3000`, API at `http://localhost:8000`.
 
 ## Architecture
 
 ```
 trading-analytics/
-├── app/
-│   ├── app.py                 # Entry point (streamlit run app/app.py)
-│   ├── requirements.txt        # Python dependencies
-│   └── pages/
-│       ├── 1_Explore.py        # Stage 1: Ticker analysis (price, indicators, fundamentals)
-│       ├── 2_Strategy.py       # Stage 2: Rule-based & ML signal generation
-│       ├── 3_Backtest.py       # Stage 3: Trade-by-trade backtesting
-│       ├── 4_Risk_Analysis.py  # Stage 4: Risk metrics & Monte Carlo
-│       └── 5_Report.py         # Stage 5: Summary & CSV export
-├── utils/
+├── frontend/                   # Next.js 16 (React 19, TypeScript, Tailwind, shadcn/ui)
+│   ├── src/app/                # App Router (layout.tsx, page.tsx)
+│   ├── src/components/         # React components by feature (explore/, strategy/, backtest/, risk/, report/)
+│   ├── src/stores/store.ts     # Zustand state management (5-stage workflow)
+│   ├── src/types/index.ts      # TypeScript type definitions
+│   ├── next.config.ts          # Standalone output + /api/* rewrite to backend
+│   └── package.json
+├── api/
+│   ├── main.py                 # FastAPI app with all routes
+│   └── requirements.txt        # Python dependencies
+├── utils/                      # Shared Python modules (used by API)
 │   ├── yfinance_fix.py         # Chrome session singleton for Yahoo Finance
-│   ├── state_manager.py        # Session state management (stage gating)
 │   ├── data_fetcher.py         # yfinance data fetching with caching
 │   ├── indicators.py           # Technical indicators via 'ta' library
 │   ├── fundamentals.py         # Fundamental data via yfinance
-│   ├── charts.py               # Plotly chart functions + KPI helpers
 │   ├── strategies.py           # 4 rule-based + 3 ML strategies
 │   ├── backtester.py           # Backtest engine with position sizing
 │   └── risk_analysis.py        # Risk metrics + Monte Carlo simulation
 ├── notebooks/                  # Research & development notebooks
-├── Dockerfile                  # Docker container (entry: app/app.py)
+├── Dockerfile                  # Multi-stage: Next.js build + Python/Node runtime
+├── start.sh                    # Startup: Uvicorn :8000 + Node :8080
 ├── fly.toml                    # fly.io deployment config
 └── .github/workflows/
     └── fly-deploy.yml          # Auto-deploy on push to main
 ```
 
+## API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/health` | Health check |
+| GET | `/api/strategies` | List available strategies |
+| POST | `/api/explore` | Fetch OHLCV, indicators, fundamentals |
+| POST | `/api/strategy` | Generate trading signals |
+| POST | `/api/backtest` | Run backtest simulation |
+| POST | `/api/risk` | Calculate risk metrics |
+| POST | `/api/monte-carlo` | Run Monte Carlo simulation |
+| POST | `/api/export` | Export data as CSV |
+
 ## Key Modules
 
 - **utils/yfinance_fix.py** - Rate limiting workaround using curl_cffi to impersonate Chrome
-- **utils/state_manager.py** - Session state with stage gating (each stage requires previous completion)
 - **utils/indicators.py** - SMA, EMA, RSI, MACD, Bollinger Bands, ATR, Stochastic, MFI via `ta` library
 - **utils/strategies.py** - SMA Crossover, RSI, MACD Crossover, Bollinger Breakout + Random Forest, Gradient Boosting, Logistic Regression
 - **utils/backtester.py** - Trade-by-trade engine with fixed/percentage/Kelly position sizing and commission
 - **utils/risk_analysis.py** - Sharpe, Sortino, VaR, CVaR, Beta, Alpha, Calmar, Information Ratio + Monte Carlo
-- **utils/charts.py** - All Plotly charts, KPI cards, formatting helpers
 
 ## Deployment
 
@@ -60,6 +76,7 @@ trading-analytics/
 - Workflow: `.github/workflows/fly-deploy.yml`
 - Requires `FLY_API_TOKEN` as GitHub Secret
 - Region: `gru` (São Paulo), 1GB RAM, shared CPU
+- Frontend on port 8080, API on port 8000
 
 ## Critical Guidelines
 
@@ -69,8 +86,8 @@ trading-analytics/
 ### Ask before implementing new features
 Discuss the approach before writing code for new functionality. Don't assume an implementation path.
 
-### Handle errors with user-friendly messages
-In Streamlit code, catch exceptions and display readable error messages to the user rather than raw tracebacks.
+### Handle errors with proper HTTP responses
+In FastAPI endpoints, catch exceptions and return meaningful error responses with appropriate status codes.
 
 ### Be careful with these fragile areas
 1. **Indicator calculations** - Math must match standard technical analysis definitions exactly.
@@ -81,5 +98,6 @@ In Streamlit code, catch exceptions and display readable error messages to the u
 
 - **Language**: Use English for all new code and comments
 - **Comments**: Minimal - code should be self-documenting
-- **Data manipulation**: Use pandas for all data operations
-- **Testing**: No formal test suite; manual testing via Streamlit UI
+- **Backend**: Use pandas for all data operations, Pydantic for request/response models
+- **Frontend**: TypeScript, functional React components, Zustand for state
+- **Testing**: No formal test suite; manual testing via UI

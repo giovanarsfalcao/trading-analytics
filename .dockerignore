@@ -10,3 +10,5 @@ man/
 .env
 .venv
 .streamlit/secrets.toml
+frontend/node_modules
+frontend/.next

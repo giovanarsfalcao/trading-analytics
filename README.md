@@ -1,6 +1,6 @@
 # Trading Analytics Platform
 
-Quantitative research platform for strategy development, backtesting, and risk analysis. Built with Python + Streamlit.
+Quantitative research platform for strategy development, backtesting, and risk analysis. Built with Next.js 16 + FastAPI.
 
 ## Features
 
@@ -13,8 +13,14 @@ Quantitative research platform for strategy development, backtesting, and risk a
 ## Quick Start
 
 ```bash
-pip install -r app/requirements.txt
-streamlit run app/app.py
+# Backend
+pip install -r api/requirements.txt
+uvicorn api.main:app --reload --port 8000
+
+# Frontend (separate terminal)
+cd frontend
+npm install
+npm run dev
 ```
 
 ## Deployment
