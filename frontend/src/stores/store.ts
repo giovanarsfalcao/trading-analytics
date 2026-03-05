@@ -1,0 +1,177 @@
+import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
+import type {
+  OHLCVRow,
+  IndicatorPoint,
+  FundamentalsData,
+  SignalPoint,
+  PortfolioPoint,
+  TradeRecord,
+  TradeStats,
+  RiskMetrics,
+  MonteCarloResult,
+} from "@/types";
+
+interface TradingState {
+  activeStage: number;
+  completedStages: number[];
+
+  // Stage 1
+  ticker: string | null;
+  period: string;
+  ohlcv: OHLCVRow[];
+  indicators: Record<string, IndicatorPoint[]>;
+  fundamentals: FundamentalsData | null;
+
+  // Stage 2
+  strategyName: string | null;
+  strategyParams: Record<string, unknown>;
+  signals: SignalPoint[];
+  signalSummary: { buy_count: number; sell_count: number; hold_count: number; total: number } | null;
+  mlMetrics: Record<string, unknown> | null;
+
+  // Stage 3
+  initialCapital: number;
+  portfolio: PortfolioPoint[];
+  benchmarkPortfolio: PortfolioPoint[];
+  trades: TradeRecord[];
+  tradeStats: TradeStats | null;
+  dailyReturns: number[];
+
+  // Stage 4
+  riskMetrics: RiskMetrics | null;
+  monteCarloResult: MonteCarloResult | null;
+
+  // UI
+  loading: Record<string, boolean>;
+  error: string | null;
+
+  // Actions
+  setActiveStage: (stage: number) => void;
+  completeStage: (stage: number) => void;
+  clearDownstream: (fromStage: number) => void;
+  setLoading: (key: string, value: boolean) => void;
+  setError: (error: string | null) => void;
+
+  setExploreData: (data: {
+    ticker: string;
+    period: string;
+    ohlcv: OHLCVRow[];
+    indicators: Record<string, IndicatorPoint[]>;
+    fundamentals: FundamentalsData | null;
+  }) => void;
+
+  setStrategyData: (data: {
+    strategyName: string;
+    strategyParams: Record<string, unknown>;
+    signals: SignalPoint[];
+    signalSummary: { buy_count: number; sell_count: number; hold_count: number; total: number };
+    mlMetrics?: Record<string, unknown> | null;
+  }) => void;
+
+  setBacktestData: (data: {
+    initialCapital: number;
+    portfolio: PortfolioPoint[];
+    benchmarkPortfolio: PortfolioPoint[];
+    trades: TradeRecord[];
+    tradeStats: TradeStats;
+    dailyReturns: number[];
+  }) => void;
+
+  setRiskData: (metrics: RiskMetrics) => void;
+  setMonteCarloData: (result: MonteCarloResult) => void;
+}
+
+export const useStore = create<TradingState>()(
+  immer((set) => ({
+    activeStage: 1,
+    completedStages: [],
+    ticker: null,
+    period: "2y",
+    ohlcv: [],
+    indicators: {},
+    fundamentals: null,
+    strategyName: null,
+    strategyParams: {},
+    signals: [],
+    signalSummary: null,
+    mlMetrics: null,
+    initialCapital: 10000,
+    portfolio: [],
+    benchmarkPortfolio: [],
+    trades: [],
+    tradeStats: null,
+    dailyReturns: [],
+    riskMetrics: null,
+    monteCarloResult: null,
+    loading: {},
+    error: null,
+
+    setActiveStage: (stage) => set((s) => { s.activeStage = stage; }),
+
+    completeStage: (stage) => set((s) => {
+      if (!s.completedStages.includes(stage)) {
+        s.completedStages.push(stage);
+        s.completedStages.sort();
+      }
+    }),
+
+    clearDownstream: (fromStage) => set((s) => {
+      s.completedStages = s.completedStages.filter((n) => n < fromStage);
+      if (fromStage <= 2) { s.strategyName = null; s.signals = []; s.signalSummary = null; s.mlMetrics = null; }
+      if (fromStage <= 3) { s.portfolio = []; s.trades = []; s.tradeStats = null; s.dailyReturns = []; s.benchmarkPortfolio = []; }
+      if (fromStage <= 4) { s.riskMetrics = null; s.monteCarloResult = null; }
+    }),
+
+    setLoading: (key, value) => set((s) => { s.loading[key] = value; }),
+    setError: (error) => set((s) => { s.error = error; }),
+
+    setExploreData: (data) => set((s) => {
+      const tickerChanged = s.ticker !== data.ticker;
+      s.ticker = data.ticker;
+      s.period = data.period;
+      s.ohlcv = data.ohlcv;
+      s.indicators = data.indicators;
+      s.fundamentals = data.fundamentals;
+      if (tickerChanged) {
+        s.completedStages = [];
+        s.strategyName = null; s.signals = []; s.signalSummary = null; s.mlMetrics = null;
+        s.portfolio = []; s.trades = []; s.tradeStats = null; s.dailyReturns = []; s.benchmarkPortfolio = [];
+        s.riskMetrics = null; s.monteCarloResult = null;
+      }
+      if (!s.completedStages.includes(1)) { s.completedStages.push(1); s.completedStages.sort(); }
+    }),
+
+    setStrategyData: (data) => set((s) => {
+      s.strategyName = data.strategyName;
+      s.strategyParams = data.strategyParams;
+      s.signals = data.signals;
+      s.signalSummary = data.signalSummary;
+      s.mlMetrics = data.mlMetrics || null;
+      // Clear downstream
+      s.completedStages = s.completedStages.filter((n) => n < 2);
+      s.portfolio = []; s.trades = []; s.tradeStats = null; s.dailyReturns = []; s.benchmarkPortfolio = [];
+      s.riskMetrics = null; s.monteCarloResult = null;
+      s.completedStages.push(2); s.completedStages.sort();
+    }),
+
+    setBacktestData: (data) => set((s) => {
+      s.initialCapital = data.initialCapital;
+      s.portfolio = data.portfolio;
+      s.benchmarkPortfolio = data.benchmarkPortfolio;
+      s.trades = data.trades;
+      s.tradeStats = data.tradeStats;
+      s.dailyReturns = data.dailyReturns;
+      s.completedStages = s.completedStages.filter((n) => n < 3);
+      s.riskMetrics = null; s.monteCarloResult = null;
+      s.completedStages.push(3); s.completedStages.sort();
+    }),
+
+    setRiskData: (metrics) => set((s) => {
+      s.riskMetrics = metrics;
+      if (!s.completedStages.includes(4)) { s.completedStages.push(4); s.completedStages.sort(); }
+    }),
+
+    setMonteCarloData: (result) => set((s) => { s.monteCarloResult = result; }),
+  }))
+);
