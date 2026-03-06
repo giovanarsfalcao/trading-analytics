@@ -55,6 +55,7 @@ class BacktestRequest(BaseModel):
     position_size: str = "fixed"
     position_pct: float = 1.0
     commission: float = 0.001
+    risk_free_rate: float = 0.0
 
 
 class RiskRequest(BaseModel):
@@ -264,6 +265,7 @@ async def backtest(req: BacktestRequest):
         position_size=req.position_size,
         position_pct=req.position_pct,
         commission=req.commission,
+        risk_free_rate=req.risk_free_rate,
     )
 
     # Serialize portfolio

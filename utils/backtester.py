@@ -13,6 +13,7 @@ def run_backtest(
     position_size: str = "fixed",
     position_pct: float = 1.0,
     commission: float = 0.001,
+    risk_free_rate: float = 0.0,
 ) -> dict:
     """
     Run a full backtest with trade-by-trade tracking.
@@ -155,7 +156,7 @@ def run_backtest(
     daily_returns = portfolio_series.pct_change().dropna()
     cumulative_returns = (portfolio_series / initial_capital) - 1
 
-    trade_stats = _compute_trade_stats(trades, portfolio_series, initial_capital)
+    trade_stats = _compute_trade_stats(trades, portfolio_series, initial_capital, risk_free_rate)
 
     return {
         "portfolio_value": portfolio_series,
@@ -184,7 +185,7 @@ def _kelly_fraction(trades: list) -> float:
     return max(0.05, min(0.5, kelly))
 
 
-def _compute_trade_stats(trades: list, portfolio: pd.Series, initial_capital: float) -> dict:
+def _compute_trade_stats(trades: list, portfolio: pd.Series, initial_capital: float, risk_free_rate: float = 0.0) -> dict:
     if not trades:
         return {
             "total_trades": 0, "winning_trades": 0, "losing_trades": 0,
@@ -214,11 +215,12 @@ def _compute_trade_stats(trades: list, portfolio: pd.Series, initial_capital: fl
     else:
         max_dd_duration = 0
 
-    # Sharpe (annualized)
+    # Sharpe (annualized, excess return over risk-free rate)
+    daily_rf = risk_free_rate / 252
     daily_ret = portfolio.pct_change().dropna()
     sharpe = 0.0
     if len(daily_ret) > 1 and daily_ret.std() > 0:
-        sharpe = float((daily_ret.mean() * 252) / (daily_ret.std() * np.sqrt(252)))
+        sharpe = float(((daily_ret.mean() - daily_rf) * 252) / (daily_ret.std() * np.sqrt(252)))
 
     # Annualized return
     total_days = (portfolio.index[-1] - portfolio.index[0]).days

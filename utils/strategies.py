@@ -141,16 +141,21 @@ def ml_strategy(
     """
     data = df.copy()
 
-    # Target: 1 if price goes up in target_shift days
+    # Target: 1 if price goes up in target_shift days (forward-return label).
+    # Remove the last target_shift rows: they have NaN targets AND rows at the
+    # train/test boundary would use labels that look into the test period.
     data["Target"] = (data["Close"].shift(-target_shift) > data["Close"]).astype(int)
+    data = data.iloc[:-target_shift]
     data = data.dropna(subset=features + ["Target"])
 
     if len(data) < 100:
         raise ValueError(f"Not enough data points ({len(data)}). Need at least 100.")
 
-    # Temporal split (no shuffling)
+    # Temporal split with boundary gap: excludes the last target_shift rows from
+    # training so no training label "looks forward" into the test feature window.
     split_idx = int(len(data) * train_ratio)
-    train = data.iloc[:split_idx]
+    gap = target_shift
+    train = data.iloc[:split_idx - gap]
     test = data.iloc[split_idx:]
 
     X_train = train[features].replace([np.inf, -np.inf], np.nan).dropna()
@@ -170,17 +175,28 @@ def ml_strategy(
 
     model.fit(X_train, y_train)
 
-    # Predict on test set
-    probabilities = model.predict_proba(X_test)[:, 1]
-    predictions = (probabilities > threshold).astype(int)
+    # Out-of-sample predictions (test set) — used for reported metrics
+    test_proba = model.predict_proba(X_test)[:, 1]
+    predictions = (test_proba > threshold).astype(int)
 
-    # Generate signals: train period = 0, test period = actual signals
+    # In-sample predictions (train set) — overfit by definition, shown with warning in UI
+    train_proba = model.predict_proba(X_train)[:, 1]
+
+    # Build full signal series covering both train and test periods
     signals = pd.Series(0, index=data.index, dtype=int)
-    test_signals = np.where(
-        probabilities > threshold, 1,
-        np.where(probabilities < (1 - threshold), -1, 0),
+
+    train_signals = np.where(
+        train_proba > threshold, 1,
+        np.where(train_proba < (1 - threshold), -1, 0),
     )
-    signals.iloc[split_idx:split_idx + len(test_signals)] = test_signals
+    signals.loc[X_train.index] = train_signals
+
+    test_signals = np.where(
+        test_proba > threshold, 1,
+        np.where(test_proba < (1 - threshold), -1, 0),
+    )
+    signals.loc[X_test.index] = test_signals
+
     signals = signals.shift(1).fillna(0).astype(int)
 
     # Feature importance
@@ -196,7 +212,7 @@ def ml_strategy(
         "recall": recall_score(y_test, predictions, zero_division=0),
         "feature_importance": importance,
         "confusion_matrix": confusion_matrix(y_test, predictions),
-        "probabilities": pd.Series(probabilities, index=X_test.index),
-        "train_size": len(train),
-        "test_size": len(test),
+        "probabilities": pd.Series(test_proba, index=X_test.index),
+        "train_size": len(X_train),
+        "test_size": len(X_test),
     }
