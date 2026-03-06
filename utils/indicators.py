@@ -65,17 +65,28 @@ def add_vwap(df: pd.DataFrame, period: int = 14) -> pd.DataFrame:
     return df
 
 
-def calculate_all_indicators(df: pd.DataFrame) -> pd.DataFrame:
+def calculate_all_indicators(
+    df: pd.DataFrame,
+    rsi_period: int = 14,
+    macd_fast: int = 12,
+    macd_slow: int = 26,
+    macd_signal: int = 9,
+    bb_period: int = 20,
+    bb_std: float = 2.0,
+    sma_fast: int = 20,
+    sma_medium: int = 50,
+    sma_slow: int = 200,
+) -> pd.DataFrame:
     """Add all standard indicators. Returns a copy with indicator columns."""
     result = df.copy()
-    result = add_sma(result, 20)
-    result = add_sma(result, 50)
-    result = add_sma(result, 200)
-    result = add_ema(result, 12)
-    result = add_ema(result, 26)
-    result = add_rsi(result)
-    result = add_macd(result)
-    result = add_bollinger_bands(result)
+    result = add_sma(result, sma_fast)
+    result = add_sma(result, sma_medium)
+    result = add_sma(result, sma_slow)
+    result = add_ema(result, macd_fast)
+    result = add_ema(result, macd_slow)
+    result = add_rsi(result, rsi_period)
+    result = add_macd(result, macd_fast, macd_slow, macd_signal)
+    result = add_bollinger_bands(result, bb_period, bb_std)
     result = add_atr(result)
     result = add_stochastic(result)
     result = add_mfi(result)

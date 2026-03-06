@@ -10,6 +10,7 @@ import { KPICard, fmt } from "@/components/shared/KPICard";
 import { useStore } from "@/stores/store";
 import { api } from "@/lib/api";
 import { EquityCurve } from "./EquityCurve";
+import { DrawdownChart } from "./DrawdownChart";
 import { TradeTable } from "./TradeTable";
 
 const BENCHMARKS = [
@@ -147,6 +148,10 @@ export function BacktestPanel() {
             <KPICard label="Sharpe" value={fmt(tradeStats.sharpe_ratio)} />
           </div>
           <EquityCurve portfolio={portfolio} benchmark={benchmarkPortfolio} />
+          <div>
+            <h3 className="text-xs font-medium text-muted-foreground mb-2">Drawdown</h3>
+            <DrawdownChart portfolio={portfolio} />
+          </div>
           {trades.length > 0 && <TradeTable trades={trades} />}
         </>
       )}

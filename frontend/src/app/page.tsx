@@ -8,6 +8,8 @@ import { IndicatorPanel } from "@/components/explore/IndicatorPanel";
 import { FundamentalsGrid } from "@/components/explore/FundamentalsGrid";
 import { StrategyForm } from "@/components/strategy/StrategyForm";
 import { SignalChart } from "@/components/strategy/SignalChart";
+import { FeatureImportance } from "@/components/strategy/FeatureImportance";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BacktestPanel } from "@/components/backtest/BacktestPanel";
 import { RiskPanel } from "@/components/risk/RiskPanel";
 import { ReportPanel } from "@/components/report/ReportPanel";
@@ -65,6 +67,8 @@ function ExploreStage() {
 
 function StrategyStage() {
   const { signals, signalSummary, mlMetrics } = useStore();
+  const ml = mlMetrics as Record<string, unknown> | null;
+
   return (
     <div className="space-y-6">
       <StrategyForm />
@@ -76,16 +80,64 @@ function StrategyStage() {
             <KPICard label="Hold" value={String(signalSummary?.hold_count ?? 0)} />
             <KPICard label="Total" value={String(signalSummary?.total ?? 0)} />
           </div>
-          {mlMetrics && (
-            <div className="grid grid-cols-3 gap-3">
-              <KPICard label="Accuracy" value={fmt((mlMetrics as Record<string, number>).accuracy, { pct: true })} />
-              <KPICard label="Precision" value={fmt((mlMetrics as Record<string, number>).precision, { pct: true })} />
-              <KPICard label="Recall" value={fmt((mlMetrics as Record<string, number>).recall, { pct: true })} />
-            </div>
+
+          {ml && (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <KPICard label="Accuracy" value={fmt(ml.accuracy as number, { pct: true })} />
+                <KPICard label="Precision" value={fmt(ml.precision as number, { pct: true })} />
+                <KPICard label="Recall" value={fmt(ml.recall as number, { pct: true })} />
+                <KPICard label="F1 Score" value={fmt(ml.f1 as number, { pct: true })} />
+                {ml.roc_auc != null && <KPICard label="ROC AUC" value={fmt(ml.roc_auc as number, { pct: true })} />}
+              </div>
+
+              {ml.confusion_matrix && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm">Confusion Matrix (Test Set)</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ConfusionMatrix matrix={ml.confusion_matrix as number[][]} />
+                  </CardContent>
+                </Card>
+              )}
+
+              {ml.feature_importance && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm">Feature Importance</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <FeatureImportance importance={ml.feature_importance as Record<string, number>} />
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
+
           <SignalChart signals={signals} />
         </>
       )}
+    </div>
+  );
+}
+
+function ConfusionMatrix({ matrix }: { matrix: number[][] }) {
+  const [[tn, fp], [fn, tp]] = matrix;
+  const cells = [
+    { label: "True Negative", value: tn, color: "text-emerald-400" },
+    { label: "False Positive", value: fp, color: "text-red-400" },
+    { label: "False Negative", value: fn, color: "text-red-400" },
+    { label: "True Positive", value: tp, color: "text-emerald-400" },
+  ];
+  return (
+    <div className="grid grid-cols-2 gap-2 max-w-xs">
+      {cells.map((c) => (
+        <div key={c.label} className="rounded-lg border border-border p-3 text-center">
+          <p className={`text-xl font-bold font-mono ${c.color}`}>{c.value}</p>
+          <p className="text-xs text-muted-foreground mt-1">{c.label}</p>
+        </div>
+      ))}
     </div>
   );
 }

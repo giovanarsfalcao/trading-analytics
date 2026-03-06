@@ -26,6 +26,15 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 class ExploreRequest(BaseModel):
     ticker: str
     period: str = "2y"
+    rsi_period: int = 14
+    macd_fast: int = 12
+    macd_slow: int = 26
+    macd_signal: int = 9
+    bb_period: int = 20
+    bb_std: float = 2.0
+    sma_fast: int = 20
+    sma_medium: int = 50
+    sma_slow: int = 200
 
 
 class _StrategyBase(BaseModel):
@@ -257,6 +266,8 @@ def _generate_signals(df_ind: pd.DataFrame, req):
             "accuracy": result["accuracy"],
             "precision": result["precision"],
             "recall": result["recall"],
+            "f1": result["f1"],
+            "roc_auc": result["roc_auc"],
             "train_size": result["train_size"],
             "test_size": result["test_size"],
             "feature_importance": result["feature_importance"],
@@ -310,9 +321,27 @@ async def get_strategies():
 
 @app.post("/api/explore")
 async def explore(req: ExploreRequest):
+    from utils.data_fetcher import fetch_price_data
+    from utils.indicators import calculate_all_indicators
     from utils.fundamentals import fetch_fundamentals
 
-    df, df_ind = _fetch_and_prepare(req.ticker, req.period)
+    try:
+        df = fetch_price_data(req.ticker, period=req.period)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    df_ind = calculate_all_indicators(
+        df,
+        rsi_period=req.rsi_period,
+        macd_fast=req.macd_fast,
+        macd_slow=req.macd_slow,
+        macd_signal=req.macd_signal,
+        bb_period=req.bb_period,
+        bb_std=req.bb_std,
+        sma_fast=req.sma_fast,
+        sma_medium=req.sma_medium,
+        sma_slow=req.sma_slow,
+    )
     ohlcv_cols = ["Open", "High", "Low", "Close", "Volume"]
 
     fundamentals = fetch_fundamentals(req.ticker)

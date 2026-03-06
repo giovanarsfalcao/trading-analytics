@@ -11,7 +11,7 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     accuracy_score, precision_score, recall_score,
-    confusion_matrix,
+    f1_score, roc_auc_score, confusion_matrix,
 )
 from utils.indicators import add_sma, add_rsi, add_macd, add_bollinger_bands
 
@@ -277,11 +277,20 @@ def ml_strategy(
     else:
         importance = dict(zip(features, np.abs(model.coef_[0])))
 
+    roc_auc = None
+    if len(y_test.unique()) > 1:
+        try:
+            roc_auc = float(roc_auc_score(y_test, test_proba))
+        except Exception:
+            pass
+
     return {
         "signals": signals,
         "accuracy": accuracy_score(y_test, predictions),
         "precision": precision_score(y_test, predictions, zero_division=0),
         "recall": recall_score(y_test, predictions, zero_division=0),
+        "f1": f1_score(y_test, predictions, zero_division=0),
+        "roc_auc": roc_auc,
         "feature_importance": importance,
         "confusion_matrix": confusion_matrix(y_test, predictions),
         "probabilities": pd.Series(test_proba, index=X_test.index),

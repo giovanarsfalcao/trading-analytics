@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { KPICard, fmt } from "@/components/shared/KPICard";
@@ -10,6 +12,9 @@ import { EquityCurve } from "@/components/backtest/EquityCurve";
 
 export function ReportPanel() {
   const { ticker, strategyName, period, tradeStats, riskMetrics, portfolio, benchmarkPortfolio, trades, completedStages } = useStore();
+  const [minSharpe, setMinSharpe] = useState(1.0);
+  const [maxDD, setMaxDD] = useState(-20);
+  const [minWinRate, setMinWinRate] = useState(50);
 
   const allComplete = [1, 2, 3, 4].every((s) => completedStages.includes(s));
 
@@ -32,9 +37,9 @@ export function ReportPanel() {
   const rm = riskMetrics!;
 
   const checks = [
-    { label: "Sharpe > 1", pass: rm.sharpe_ratio > 1 },
-    { label: "Max DD > -20%", pass: rm.max_drawdown > -0.2 },
-    { label: "Win Rate > 50%", pass: ts.win_rate > 0.5 },
+    { label: `Sharpe > ${minSharpe}`, pass: rm.sharpe_ratio > minSharpe },
+    { label: `Max DD > ${maxDD}%`, pass: rm.max_drawdown * 100 > maxDD },
+    { label: `Win Rate > ${minWinRate}%`, pass: ts.win_rate * 100 > minWinRate },
   ];
   const score = checks.filter((c) => c.pass).length;
   const verdict = score === 3 ? "Strong" : score >= 1 ? "Moderate" : "Weak";
@@ -78,8 +83,22 @@ export function ReportPanel() {
         <CardHeader className="pb-3">
           <CardTitle className="text-sm">Assessment</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex gap-6 mb-4">
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Min Sharpe</label>
+              <Input type="number" value={minSharpe} step={0.1} onChange={(e) => setMinSharpe(Number(e.target.value))} className="h-7 text-xs" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Max Drawdown (%)</label>
+              <Input type="number" value={maxDD} step={1} max={0} onChange={(e) => setMaxDD(Number(e.target.value))} className="h-7 text-xs" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Min Win Rate (%)</label>
+              <Input type="number" value={minWinRate} step={1} min={0} max={100} onChange={(e) => setMinWinRate(Number(e.target.value))} className="h-7 text-xs" />
+            </div>
+          </div>
+          <div className="flex gap-6">
             {checks.map((c) => (
               <div key={c.label} className="flex items-center gap-2">
                 <span className={c.pass ? "text-emerald-400" : "text-red-400"}>{c.pass ? "Pass" : "Fail"}</span>
