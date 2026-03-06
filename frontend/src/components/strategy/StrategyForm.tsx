@@ -5,13 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { KPICard, fmt } from "@/components/shared/KPICard";
 import { useStore } from "@/stores/store";
 import { api } from "@/lib/api";
 import type { StrategyRegistry } from "@/types";
-import { SignalChart } from "./SignalChart";
 
 const ML_MODELS = ["Random Forest", "Gradient Boosting", "Logistic Regression"];
 const DEFAULT_FEATURES = ["RSI", "MACD_HIST", "MFI", "BB_Percent", "STOCH_K"];
@@ -28,6 +25,10 @@ export function StrategyForm() {
   const [trainRatio, setTrainRatio] = useState(0.8);
   const [threshold, setThreshold] = useState(0.55);
   const [targetShift, setTargetShift] = useState(1);
+  // Walk-forward state
+  const [walkForward, setWalkForward] = useState(false);
+  const [trainWindow, setTrainWindow] = useState(504);
+  const [wfStep, setWfStep] = useState(63);
 
   useEffect(() => {
     api.strategies().then((r) => {
@@ -73,17 +74,32 @@ export function StrategyForm() {
     setLoading("strategy", true);
     setError(null);
     try {
-      const res = await api.strategy({
-        ticker, period, strategy_name: "ML", model_type: modelType,
-        features, train_ratio: trainRatio, threshold, target_shift: targetShift,
-      }) as any;
-      setStrategyData({
-        strategyName: res.strategy_name,
-        strategyParams: { model_type: modelType, features, train_ratio: trainRatio, threshold, target_shift: targetShift },
-        signals: res.signals,
-        signalSummary: res.signal_summary,
-        mlMetrics: res.ml_metrics,
-      });
+      if (walkForward) {
+        const res = await api.walkForward({
+          ticker, period, model_type: modelType,
+          features, train_window: trainWindow, step: wfStep,
+          threshold, target_shift: targetShift,
+        }) as any;
+        setStrategyData({
+          strategyName: res.strategy_name,
+          strategyParams: { model_type: modelType, features, threshold, target_shift: targetShift },
+          signals: res.signals,
+          signalSummary: res.signal_summary,
+          mlMetrics: { n_folds: res.n_folds, fold_results: res.fold_results },
+        });
+      } else {
+        const res = await api.strategy({
+          ticker, period, strategy_name: "ML", model_type: modelType,
+          features, train_ratio: trainRatio, threshold, target_shift: targetShift,
+        }) as any;
+        setStrategyData({
+          strategyName: res.strategy_name,
+          strategyParams: { model_type: modelType, features, train_ratio: trainRatio, threshold, target_shift: targetShift },
+          signals: res.signals,
+          signalSummary: res.signal_summary,
+          mlMetrics: res.ml_metrics,
+        });
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "ML training failed");
     } finally {
@@ -138,12 +154,24 @@ export function StrategyForm() {
             <CardTitle className="text-sm">ML Configuration</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Select value={modelType} onValueChange={setModelType}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {ML_MODELS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center justify-between">
+              <Select value={modelType} onValueChange={setModelType}>
+                <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {ML_MODELS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={walkForward}
+                  onChange={(e) => setWalkForward(e.target.checked)}
+                  className="rounded"
+                />
+                Walk-Forward
+              </label>
+            </div>
+
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">Features</label>
               <div className="flex flex-wrap gap-1">
@@ -158,21 +186,42 @@ export function StrategyForm() {
                 ))}
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs text-muted-foreground"><span>Train Ratio</span><span>{trainRatio}</span></div>
-                <Slider min={0.6} max={0.9} step={0.05} value={[trainRatio]} onValueChange={([v]) => setTrainRatio(v)} />
+
+            {walkForward ? (
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs text-muted-foreground"><span>Train Window</span><span>{trainWindow}d</span></div>
+                  <Slider min={126} max={756} step={63} value={[trainWindow]} onValueChange={([v]) => setTrainWindow(v)} />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs text-muted-foreground"><span>Step Size</span><span>{wfStep}d</span></div>
+                  <Slider min={21} max={126} step={21} value={[wfStep]} onValueChange={([v]) => setWfStep(v)} />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs text-muted-foreground"><span>Threshold</span><span>{threshold}</span></div>
+                  <Slider min={0.5} max={0.7} step={0.01} value={[threshold]} onValueChange={([v]) => setThreshold(v)} />
+                </div>
               </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs text-muted-foreground"><span>Threshold</span><span>{threshold}</span></div>
-                <Slider min={0.5} max={0.7} step={0.01} value={[threshold]} onValueChange={([v]) => setThreshold(v)} />
+            ) : (
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs text-muted-foreground"><span>Train Ratio</span><span>{trainRatio}</span></div>
+                  <Slider min={0.6} max={0.9} step={0.05} value={[trainRatio]} onValueChange={([v]) => setTrainRatio(v)} />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs text-muted-foreground"><span>Threshold</span><span>{threshold}</span></div>
+                  <Slider min={0.5} max={0.7} step={0.01} value={[threshold]} onValueChange={([v]) => setThreshold(v)} />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs text-muted-foreground"><span>Horizon</span><span>{targetShift}d</span></div>
+                  <Slider min={1} max={20} step={1} value={[targetShift]} onValueChange={([v]) => setTargetShift(v)} />
+                </div>
               </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs text-muted-foreground"><span>Horizon</span><span>{targetShift}d</span></div>
-                <Slider min={1} max={20} step={1} value={[targetShift]} onValueChange={([v]) => setTargetShift(v)} />
-              </div>
-            </div>
-            <Button onClick={runML} className="w-full">Train Model</Button>
+            )}
+
+            <Button onClick={runML} className="w-full">
+              {walkForward ? "Run Walk-Forward" : "Train Model"}
+            </Button>
           </CardContent>
         </Card>
       </TabsContent>

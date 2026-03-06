@@ -12,6 +12,13 @@ import { api } from "@/lib/api";
 import { EquityCurve } from "./EquityCurve";
 import { TradeTable } from "./TradeTable";
 
+const BENCHMARKS = [
+  { label: "S&P 500", value: "^GSPC" },
+  { label: "NASDAQ-100", value: "QQQ" },
+  { label: "Russell 2000", value: "IWM" },
+  { label: "No Benchmark", value: "" },
+];
+
 export function BacktestPanel() {
   const store = useStore();
   const { ticker, period, strategyName, strategyParams, tradeStats, portfolio, benchmarkPortfolio, trades, setBacktestData, setLoading, setError } = store;
@@ -19,6 +26,10 @@ export function BacktestPanel() {
   const [sizing, setSizing] = useState("fixed");
   const [pct, setPct] = useState(1.0);
   const [commission, setCommission] = useState(0.1);
+  const [slippage, setSlippage] = useState(0);
+  const [spread, setSpread] = useState(0);
+  const [kellyFraction, setKellyFraction] = useState(0.5);
+  const [benchmark, setBenchmark] = useState("^GSPC");
 
   async function run() {
     if (!ticker || !strategyName) return;
@@ -39,6 +50,10 @@ export function BacktestPanel() {
         position_size: sizing,
         position_pct: pct,
         commission: commission / 100,
+        slippage: slippage / 100,
+        spread: spread / 100,
+        kelly_fraction: kellyFraction,
+        benchmark: benchmark || undefined,
       }) as any;
       setBacktestData({
         initialCapital: capital,
@@ -61,7 +76,7 @@ export function BacktestPanel() {
         <CardHeader className="pb-3">
           <CardTitle className="text-sm">Backtest Configuration</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">Initial Capital ($)</label>
@@ -78,18 +93,46 @@ export function BacktestPanel() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Benchmark</label>
+              <Select value={benchmark} onValueChange={setBenchmark}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {BENCHMARKS.map((b) => <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs text-muted-foreground"><span>Commission</span><span>{commission.toFixed(2)}%</span></div>
+              <Slider min={0} max={1} step={0.05} value={[commission]} onValueChange={([v]) => setCommission(v)} />
+            </div>
+          </div>
+
+          {/* Conditional controls */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
             {sizing === "percentage" && (
               <div className="space-y-1">
                 <div className="flex justify-between text-xs text-muted-foreground"><span>Position %</span><span>{(pct * 100).toFixed(0)}%</span></div>
                 <Slider min={0.1} max={1} step={0.05} value={[pct]} onValueChange={([v]) => setPct(v)} />
               </div>
             )}
+            {sizing === "kelly" && (
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs text-muted-foreground"><span>Kelly Fraction</span><span>{kellyFraction.toFixed(1)}×</span></div>
+                <Slider min={0.1} max={1} step={0.1} value={[kellyFraction]} onValueChange={([v]) => setKellyFraction(v)} />
+              </div>
+            )}
             <div className="space-y-1">
-              <div className="flex justify-between text-xs text-muted-foreground"><span>Commission</span><span>{commission.toFixed(1)}%</span></div>
-              <Slider min={0} max={1} step={0.05} value={[commission]} onValueChange={([v]) => setCommission(v)} />
+              <div className="flex justify-between text-xs text-muted-foreground"><span>Slippage</span><span>{slippage.toFixed(2)}%</span></div>
+              <Slider min={0} max={0.5} step={0.05} value={[slippage]} onValueChange={([v]) => setSlippage(v)} />
+            </div>
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs text-muted-foreground"><span>Bid-Ask Spread</span><span>{spread.toFixed(2)}%</span></div>
+              <Slider min={0} max={0.5} step={0.05} value={[spread]} onValueChange={([v]) => setSpread(v)} />
             </div>
           </div>
-          <Button onClick={run} className="mt-4 w-full">Run Backtest</Button>
+
+          <Button onClick={run} className="w-full">Run Backtest</Button>
         </CardContent>
       </Card>
 

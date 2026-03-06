@@ -123,25 +123,37 @@ def monte_carlo_simulation(
     n_simulations: int = 1000,
     n_days: int = 252,
     confidence_levels: list = None,
+    method: str = "gbm",
 ) -> dict:
     """
-    Monte Carlo simulation using Geometric Brownian Motion.
+    Monte Carlo simulation.
 
-    Returns dict with: simulations, percentiles, final_values,
-    probability_of_loss, expected_value, median_value, median_path.
+    method="gbm": Geometric Brownian Motion (assumes normal returns).
+    method="bootstrap": Resample historical returns with replacement,
+                        preserving empirical fat tails and skew.
+
+    Returns dict with: percentiles, final_values, probability_of_loss,
+    expected_value, median_value, median_path, best_case, worst_case.
     """
     if confidence_levels is None:
         confidence_levels = [0.05, 0.25, 0.75, 0.95]
 
-    mu = float(np.mean(portfolio_returns))
-    sigma = float(np.std(portfolio_returns))
+    returns = portfolio_returns.dropna().values
 
-    shocks = np.random.normal(
-        loc=(mu - 0.5 * sigma**2),
-        scale=sigma,
-        size=(n_days, n_simulations),
-    )
-    paths = initial_capital * np.exp(np.cumsum(shocks, axis=0))
+    if method == "bootstrap":
+        # Resample historical daily returns with replacement
+        sampled = np.random.choice(returns, size=(n_days, n_simulations), replace=True)
+        paths = initial_capital * np.exp(np.cumsum(sampled, axis=0))
+    else:
+        # GBM: fit normal distribution to historical returns
+        mu = float(np.mean(returns))
+        sigma = float(np.std(returns))
+        shocks = np.random.normal(
+            loc=(mu - 0.5 * sigma**2),
+            scale=sigma,
+            size=(n_days, n_simulations),
+        )
+        paths = initial_capital * np.exp(np.cumsum(shocks, axis=0))
 
     final_values = paths[-1]
 

@@ -22,6 +22,10 @@ export function IndicatorPanel({ name, data }: Props) {
   if (name === "MFI") return <BandChart data={data} cols={["MFI"]} upper={80} lower={20} label="MFI" />;
   if (name === "ATR") return <SimpleLineChart data={data} col="ATR" />;
   if (name === "Bollinger Bands") return <MultiLineChart data={data} cols={["BB_Upper", "BB_Middle", "BB_Lower"]} label="Bollinger Bands" />;
+  if (name === "VWAP") {
+    const col = Object.keys(data).find((k) => k.startsWith("VWAP")) ?? "";
+    return col ? <SimpleLineChart data={data} col={col} /> : null;
+  }
   return null;
 }
 
@@ -52,11 +56,11 @@ function MACDChart({ data }: { data: Record<string, IndicatorPoint[]> }) {
   );
 }
 
-function BandChart({ data, cols, upper, lower, label }: { data: Record<string, IndicatorPoint[]>; cols: string[]; upper: number; lower: number; label: string }) {
+function BandChart({ data, cols, upper, lower }: { data: Record<string, IndicatorPoint[]>; cols: string[]; upper: number; lower: number; label: string }) {
   const primary = data[cols[0]] || [];
   const merged = primary.map((p, i) => {
     const row: Record<string, string | number> = { date: p.date.split("T")[0] };
-    cols.forEach((c, j) => { row[c] = data[c]?.[i]?.value ?? 0; });
+    cols.forEach((c) => { row[c] = data[c]?.[i]?.value ?? 0; });
     return row;
   });
 
@@ -92,7 +96,7 @@ function SimpleLineChart({ data, col }: { data: Record<string, IndicatorPoint[]>
   );
 }
 
-function MultiLineChart({ data, cols, label }: { data: Record<string, IndicatorPoint[]>; cols: string[]; label: string }) {
+function MultiLineChart({ data, cols }: { data: Record<string, IndicatorPoint[]>; cols: string[]; label: string }) {
   const primary = data[cols[0]] || [];
   const merged = primary.map((p, i) => {
     const row: Record<string, string | number> = { date: p.date.split("T")[0] };

@@ -15,7 +15,7 @@ import { KPICard, fmt } from "@/components/shared/KPICard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useStore } from "@/stores/store";
 
-const INDICATORS = ["MACD", "RSI", "Bollinger Bands", "Stochastic", "MFI", "ATR"];
+const INDICATORS = ["MACD", "RSI", "Bollinger Bands", "Stochastic", "MFI", "ATR", "VWAP"];
 
 function ExploreStage() {
   const { ohlcv, indicators, fundamentals } = useStore();
@@ -41,7 +41,8 @@ function ExploreStage() {
               (name === "Bollinger Bands" && k.startsWith("BB_")) ||
               (name === "Stochastic" && k.startsWith("STOCH")) ||
               (name === "MFI" && k === "MFI") ||
-              (name === "ATR" && k === "ATR")
+              (name === "ATR" && k === "ATR") ||
+              (name === "VWAP" && k.startsWith("VWAP"))
             );
             if (!hasData) return null;
             return (

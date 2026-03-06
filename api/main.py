@@ -14,7 +14,7 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 # Ensure utils/ is importable
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -28,20 +28,8 @@ class ExploreRequest(BaseModel):
     period: str = "2y"
 
 
-class StrategyRequest(BaseModel):
-    ticker: str
-    period: str = "2y"
-    strategy_name: str
-    params: dict = Field(default_factory=dict)
-    # ML-specific fields (optional)
-    model_type: str | None = None
-    features: list[str] | None = None
-    train_ratio: float = 0.8
-    threshold: float = 0.55
-    target_shift: int = 1
-
-
-class BacktestRequest(BaseModel):
+class _StrategyBase(BaseModel):
+    """Shared fields and validators for strategy + backtest requests."""
     ticker: str
     period: str = "2y"
     strategy_name: str
@@ -51,11 +39,101 @@ class BacktestRequest(BaseModel):
     train_ratio: float = 0.8
     threshold: float = 0.55
     target_shift: int = 1
+
+    @field_validator("train_ratio")
+    @classmethod
+    def validate_train_ratio(cls, v: float) -> float:
+        if not 0.5 <= v <= 0.95:
+            raise ValueError("train_ratio must be between 0.5 and 0.95")
+        return v
+
+    @field_validator("threshold")
+    @classmethod
+    def validate_threshold(cls, v: float) -> float:
+        if not 0.5 <= v <= 0.9:
+            raise ValueError("threshold must be between 0.5 and 0.9")
+        return v
+
+    @field_validator("target_shift")
+    @classmethod
+    def validate_target_shift(cls, v: int) -> int:
+        if not 1 <= v <= 20:
+            raise ValueError("target_shift must be between 1 and 20")
+        return v
+
+    @model_validator(mode="after")
+    def validate_strategy_params(self) -> "_StrategyBase":
+        p = self.params
+        name = self.strategy_name
+
+        if name == "SMA Crossover" and p:
+            fast = p.get("fast_period", 20)
+            slow = p.get("slow_period", 50)
+            if fast >= slow:
+                raise ValueError(
+                    f"SMA fast_period ({fast}) must be less than slow_period ({slow})"
+                )
+
+        if name == "MACD Signal Crossover" and p:
+            fast = p.get("fast", 12)
+            slow = p.get("slow", 26)
+            if fast >= slow:
+                raise ValueError(
+                    f"MACD fast ({fast}) must be less than slow ({slow})"
+                )
+
+        return self
+
+
+class StrategyRequest(_StrategyBase):
+    pass
+
+
+class BacktestRequest(_StrategyBase):
     initial_capital: float = 10000
     position_size: str = "fixed"
     position_pct: float = 1.0
     commission: float = 0.001
     risk_free_rate: float = 0.0
+    slippage: float = 0.0
+    spread: float = 0.0
+    kelly_fraction: float = 0.5
+    benchmark: str = "^GSPC"
+
+    @field_validator("initial_capital")
+    @classmethod
+    def validate_initial_capital(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError("initial_capital must be positive")
+        return v
+
+    @field_validator("commission")
+    @classmethod
+    def validate_commission(cls, v: float) -> float:
+        if not 0 <= v <= 0.05:
+            raise ValueError("commission must be between 0% and 5%")
+        return v
+
+    @field_validator("position_pct")
+    @classmethod
+    def validate_position_pct(cls, v: float) -> float:
+        if not 0.01 <= v <= 1.0:
+            raise ValueError("position_pct must be between 1% and 100%")
+        return v
+
+    @field_validator("slippage", "spread")
+    @classmethod
+    def validate_market_impact(cls, v: float) -> float:
+        if not 0 <= v <= 0.01:
+            raise ValueError("slippage and spread must be between 0% and 1%")
+        return v
+
+    @field_validator("kelly_fraction")
+    @classmethod
+    def validate_kelly_fraction(cls, v: float) -> float:
+        if not 0.1 <= v <= 1.0:
+            raise ValueError("kelly_fraction must be between 0.1 and 1.0")
+        return v
 
 
 class RiskRequest(BaseModel):
@@ -71,6 +149,29 @@ class MonteCarloRequest(BaseModel):
     initial_capital: float = 10000
     n_simulations: int = 1000
     n_days: int = 252
+    method: str = "gbm"
+
+
+class WalkForwardRequest(BaseModel):
+    ticker: str
+    period: str = "2y"
+    model_type: str = "Random Forest"
+    features: list[str] = Field(default_factory=lambda: ["RSI", "MACD_HIST", "MFI", "BB_Percent", "STOCH_K"])
+    train_window: int = 504
+    step: int = 63
+    threshold: float = 0.55
+    target_shift: int = 1
+
+
+class ParamSweepRequest(BaseModel):
+    ticker: str
+    period: str = "2y"
+    strategy_name: str
+    param_name: str
+    param_values: list[float]
+    base_params: dict = Field(default_factory=dict)
+    initial_capital: float = 10000
+    commission: float = 0.001
 
 
 class ExportRequest(BaseModel):
@@ -130,9 +231,10 @@ def _fetch_and_prepare(ticker: str, period: str):
     from utils.data_fetcher import fetch_price_data
     from utils.indicators import calculate_all_indicators
 
-    df = fetch_price_data(ticker, period=period)
-    if df.empty:
-        raise HTTPException(status_code=404, detail=f"No data found for {ticker}")
+    try:
+        df = fetch_price_data(ticker, period=period)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     df_ind = calculate_all_indicators(df)
     return df, df_ind
 
@@ -266,6 +368,9 @@ async def backtest(req: BacktestRequest):
         position_pct=req.position_pct,
         commission=req.commission,
         risk_free_rate=req.risk_free_rate,
+        slippage=req.slippage,
+        spread=req.spread,
+        kelly_fraction=req.kelly_fraction,
     )
 
     # Serialize portfolio
@@ -297,7 +402,7 @@ async def backtest(req: BacktestRequest):
 
     # Benchmark
     benchmark_portfolio = None
-    bench_df = fetch_benchmark_data(period=req.period)
+    bench_df = fetch_benchmark_data(ticker=req.benchmark, period=req.period)
     if not bench_df.empty:
         bench_close = bench_df["Close"]
         mask = (bench_close.index >= df.index[0]) & (bench_close.index <= df.index[-1])
@@ -352,6 +457,7 @@ async def monte_carlo(req: MonteCarloRequest):
         returns, req.initial_capital,
         n_simulations=req.n_simulations,
         n_days=req.n_days,
+        method=req.method,
     )
 
     # Downsample final values for histogram (max 500)
@@ -375,6 +481,68 @@ async def monte_carlo(req: MonteCarloRequest):
         "worst_case": mc["worst_case"],
         "final_values_histogram": [float(v) for v in final_vals],
     }
+
+
+@app.post("/api/walk-forward")
+async def walk_forward(req: WalkForwardRequest):
+    from utils.strategies import walk_forward_ml_strategy
+
+    df, df_ind = _fetch_and_prepare(req.ticker, req.period)
+
+    try:
+        result = walk_forward_ml_strategy(
+            df_ind,
+            features=req.features,
+            model_type=req.model_type,
+            train_window=req.train_window,
+            step=req.step,
+            threshold=req.threshold,
+            target_shift=req.target_shift,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    signals = result["signals"]
+    serialized = _serialize_signals(signals, df["Close"])
+    return {
+        "signals": serialized,
+        "signal_summary": _signal_summary(signals),
+        "fold_results": result["fold_results"],
+        "n_folds": result["n_folds"],
+        "strategy_name": f"Walk-Forward: {req.model_type}",
+    }
+
+
+@app.post("/api/param-sweep")
+async def param_sweep(req: ParamSweepRequest):
+    from utils.strategies import STRATEGY_REGISTRY
+    from utils.backtester import run_backtest
+
+    if req.strategy_name not in STRATEGY_REGISTRY:
+        raise HTTPException(status_code=400, detail=f"Unknown strategy: {req.strategy_name}")
+
+    df, df_ind = _fetch_and_prepare(req.ticker, req.period)
+    strategy_fn = STRATEGY_REGISTRY[req.strategy_name]["fn"]
+
+    results = []
+    for val in req.param_values:
+        params = {**req.base_params, req.param_name: val}
+        try:
+            signals = strategy_fn(df_ind, **params)
+            bt = run_backtest(df, signals, initial_capital=req.initial_capital, commission=req.commission)
+            stats = bt["trade_stats"]
+            results.append({
+                "param_value": val,
+                "total_return": stats.get("total_return", 0),
+                "sharpe_ratio": stats.get("sharpe_ratio", 0),
+                "max_drawdown": stats.get("max_drawdown", 0),
+                "win_rate": stats.get("win_rate", 0),
+                "total_trades": stats.get("total_trades", 0),
+            })
+        except Exception as e:
+            results.append({"param_value": val, "error": str(e)})
+
+    return {"strategy_name": req.strategy_name, "param_name": req.param_name, "results": results}
 
 
 @app.post("/api/export")

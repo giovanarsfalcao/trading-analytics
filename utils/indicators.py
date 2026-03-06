@@ -55,6 +55,16 @@ def add_mfi(df: pd.DataFrame, period: int = 14) -> pd.DataFrame:
     return df
 
 
+def add_vwap(df: pd.DataFrame, period: int = 14) -> pd.DataFrame:
+    """Rolling VWAP: sum(typical_price * volume) / sum(volume) over period."""
+    typical = (df["High"] + df["Low"] + df["Close"]) / 3
+    df[f"VWAP_{period}"] = (
+        (typical * df["Volume"]).rolling(period).sum()
+        / df["Volume"].rolling(period).sum()
+    )
+    return df
+
+
 def calculate_all_indicators(df: pd.DataFrame) -> pd.DataFrame:
     """Add all standard indicators. Returns a copy with indicator columns."""
     result = df.copy()
@@ -69,4 +79,5 @@ def calculate_all_indicators(df: pd.DataFrame) -> pd.DataFrame:
     result = add_atr(result)
     result = add_stochastic(result)
     result = add_mfi(result)
+    result = add_vwap(result)
     return result

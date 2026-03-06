@@ -1,5 +1,5 @@
 """
-Backtest engine with trade tracking, position sizing, and commission handling.
+Backtest engine with trade tracking, position sizing, and transaction cost handling.
 """
 
 import pandas as pd
@@ -14,6 +14,9 @@ def run_backtest(
     position_pct: float = 1.0,
     commission: float = 0.001,
     risk_free_rate: float = 0.0,
+    slippage: float = 0.0,
+    spread: float = 0.0,
+    kelly_fraction: float = 0.5,
 ) -> dict:
     """
     Run a full backtest with trade-by-trade tracking.
@@ -25,6 +28,10 @@ def run_backtest(
         position_size: "fixed" (100%), "percentage", or "kelly"
         position_pct: fraction for "percentage" mode
         commission: rate per trade (applied on buy AND sell)
+        risk_free_rate: annualized risk-free rate for Sharpe calculation
+        slippage: one-way price impact fraction (e.g. 0.001 = 0.1%)
+        spread: half bid-ask spread fraction (e.g. 0.001 = 0.1%)
+        kelly_fraction: fractional Kelly multiplier (0.5 = half-Kelly)
 
     Returns dict with: portfolio_value, cumulative_returns, trades,
     trade_stats, daily_returns, initial_capital.
@@ -37,6 +44,9 @@ def run_backtest(
     prices = aligned["Close"].values
     sigs = aligned["Signal"].values
     dates = aligned.index
+
+    # Total adverse price impact per side (slippage + half-spread)
+    adverse = slippage + spread
 
     capital = initial_capital
     position = 0.0
@@ -53,38 +63,42 @@ def run_backtest(
 
         # Position sizing fraction
         if position_size == "kelly":
-            frac = _kelly_fraction(trades) if trades else 0.5
+            frac = _kelly_fraction(trades, kelly_fraction) if trades else 0.5
         elif position_size == "percentage":
             frac = position_pct
         else:
             frac = 1.0
 
-        # Buy signal, no position
+        # Adverse fill prices: buys fill higher, sells fill lower
+        fill_buy = price * (1 + adverse)
+        fill_sell = price * (1 - adverse)
+
+        # Buy signal, no position → long entry
         if sig == 1 and position == 0:
             invest = capital * frac
-            shares = invest / price
+            shares = invest / fill_buy
             cost = invest * commission
             capital -= (invest + cost)
             position = shares
             current_trade = {
                 "entry_date": dates[i],
-                "entry_price": price,
+                "entry_price": fill_buy,
                 "direction": "long",
                 "shares": shares,
                 "commission_entry": cost,
             }
 
-        # Sell signal, holding long
+        # Sell signal, holding long → long exit
         elif sig == -1 and position > 0:
-            proceeds = position * price
+            proceeds = position * fill_sell
             cost = proceeds * commission
             capital += (proceeds - cost)
             if current_trade:
                 current_trade.update({
                     "exit_date": dates[i],
-                    "exit_price": price,
+                    "exit_price": fill_sell,
                     "commission_exit": cost,
-                    "return_pct": (price - current_trade["entry_price"]) / current_trade["entry_price"],
+                    "return_pct": (fill_sell - current_trade["entry_price"]) / current_trade["entry_price"],
                     "holding_days": (dates[i] - current_trade["entry_date"]).days,
                     "pnl": proceeds - cost - current_trade["shares"] * current_trade["entry_price"] - current_trade["commission_entry"],
                 })
@@ -92,59 +106,61 @@ def run_backtest(
                 current_trade = None
             position = 0.0
 
-        # Sell signal, no position -> short
+        # Sell signal, no position → short entry
         elif sig == -1 and position == 0:
             invest = capital * frac
-            shares = invest / price
-            cost = invest * commission
-            capital += invest  # proceeds from short sale
-            capital -= cost
+            shares = invest / price          # size in shares at market price
+            received = shares * fill_sell    # proceeds at adverse fill
+            cost = received * commission
+            capital += received - cost
             position = -shares
             current_trade = {
                 "entry_date": dates[i],
-                "entry_price": price,
+                "entry_price": fill_sell,
                 "direction": "short",
                 "shares": shares,
                 "commission_entry": cost,
             }
 
-        # Buy signal, holding short -> cover
+        # Buy signal, holding short → short cover
         elif sig == 1 and position < 0:
-            cover_cost = abs(position) * price
+            cover_cost = abs(position) * fill_buy
             cost = cover_cost * commission
             capital -= (cover_cost + cost)
             if current_trade:
                 current_trade.update({
                     "exit_date": dates[i],
-                    "exit_price": price,
+                    "exit_price": fill_buy,
                     "commission_exit": cost,
-                    "return_pct": (current_trade["entry_price"] - price) / current_trade["entry_price"],
+                    "return_pct": (current_trade["entry_price"] - fill_buy) / current_trade["entry_price"],
                     "holding_days": (dates[i] - current_trade["entry_date"]).days,
-                    "pnl": (current_trade["entry_price"] - price) * current_trade["shares"] - cost - current_trade["commission_entry"],
+                    "pnl": (current_trade["entry_price"] - fill_buy) * current_trade["shares"] - cost - current_trade["commission_entry"],
                 })
                 trades.append(current_trade)
                 current_trade = None
             position = 0.0
 
-    # Close any open position at the end
+    # Close any open position at end of data
     if position != 0 and current_trade:
         final_price = prices[-1]
         if position > 0:
-            proceeds = position * final_price
+            fill = final_price * (1 - adverse)
+            proceeds = position * fill
             cost = proceeds * commission
             capital += (proceeds - cost)
-            ret = (final_price - current_trade["entry_price"]) / current_trade["entry_price"]
+            ret = (fill - current_trade["entry_price"]) / current_trade["entry_price"]
             pnl = proceeds - cost - current_trade["shares"] * current_trade["entry_price"] - current_trade["commission_entry"]
         else:
-            cover_cost = abs(position) * final_price
+            fill = final_price * (1 + adverse)
+            cover_cost = abs(position) * fill
             cost = cover_cost * commission
             capital -= (cover_cost + cost)
-            ret = (current_trade["entry_price"] - final_price) / current_trade["entry_price"]
-            pnl = (current_trade["entry_price"] - final_price) * current_trade["shares"] - cost - current_trade["commission_entry"]
+            ret = (current_trade["entry_price"] - fill) / current_trade["entry_price"]
+            pnl = (current_trade["entry_price"] - fill) * current_trade["shares"] - cost - current_trade["commission_entry"]
 
         current_trade.update({
             "exit_date": dates[-1],
-            "exit_price": final_price,
+            "exit_price": fill,
             "commission_exit": cost,
             "return_pct": ret,
             "holding_days": (dates[-1] - current_trade["entry_date"]).days,
@@ -168,7 +184,7 @@ def run_backtest(
     }
 
 
-def _kelly_fraction(trades: list) -> float:
+def _kelly_fraction(trades: list, kelly_multiplier: float = 0.5) -> float:
     if len(trades) < 5:
         return 0.25
     returns = [t["return_pct"] for t in trades if "return_pct" in t]
@@ -182,7 +198,7 @@ def _kelly_fraction(trades: list) -> float:
     if avg_loss == 0:
         return 0.5
     kelly = win_rate - (1 - win_rate) / (avg_win / avg_loss)
-    return max(0.05, min(0.5, kelly))
+    return max(0.05, min(0.5, kelly * kelly_multiplier))
 
 
 def _compute_trade_stats(trades: list, portfolio: pd.Series, initial_capital: float, risk_free_rate: float = 0.0) -> dict:

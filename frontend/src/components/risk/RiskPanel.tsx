@@ -20,6 +20,7 @@ export function RiskPanel() {
   const { dailyReturns, portfolio, benchmarkPortfolio, initialCapital, riskMetrics, monteCarloResult, setRiskData, setMonteCarloData, setLoading, setError } = useStore();
   const [nSims, setNSims] = useState(1000);
   const [horizon, setHorizon] = useState(252);
+  const [mcMethod, setMcMethod] = useState("gbm");
 
   async function loadRisk() {
     setLoading("risk", true);
@@ -51,6 +52,7 @@ export function RiskPanel() {
         initial_capital: initialCapital,
         n_simulations: nSims,
         n_days: horizon,
+        method: mcMethod,
       }) as any;
       setMonteCarloData(res);
     } catch (e) {
@@ -93,7 +95,7 @@ export function RiskPanel() {
           <CardTitle className="text-sm">Monte Carlo Simulation</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-4 items-end">
+          <div className="flex flex-wrap gap-4 items-end">
             <div className="space-y-1">
               <div className="flex justify-between text-xs text-muted-foreground"><span>Simulations</span><span>{nSims}</span></div>
               <Slider min={500} max={5000} step={100} value={[nSims]} onValueChange={([v]) => setNSims(v)} className="w-48" />
@@ -104,6 +106,16 @@ export function RiskPanel() {
                 <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {HORIZONS.map((h) => <SelectItem key={h.days} value={String(h.days)}>{h.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Method</label>
+              <Select value={mcMethod} onValueChange={setMcMethod}>
+                <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gbm">GBM (Normal)</SelectItem>
+                  <SelectItem value="bootstrap">Bootstrap (Historical)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

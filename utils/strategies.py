@@ -13,10 +13,7 @@ from sklearn.metrics import (
     accuracy_score, precision_score, recall_score,
     confusion_matrix,
 )
-from utils.indicators import (
-    add_sma, add_rsi, add_macd, add_bollinger_bands,
-    add_stochastic, add_mfi, add_atr,
-)
+from utils.indicators import add_sma, add_rsi, add_macd, add_bollinger_bands
 
 
 # ── Rule-Based Strategies ───────────────────────────────────────
@@ -123,6 +120,81 @@ MODEL_REGISTRY = {
     "Gradient Boosting": GradientBoostingClassifier,
     "Logistic Regression": LogisticRegression,
 }
+
+
+def walk_forward_ml_strategy(
+    df: pd.DataFrame,
+    features: list[str],
+    model_type: str = "Random Forest",
+    train_window: int = 504,
+    step: int = 63,
+    threshold: float = 0.55,
+    target_shift: int = 1,
+) -> dict:
+    """
+    Walk-forward ML strategy: rolling train/test windows.
+
+    Each fold trains on the previous `train_window` bars and generates
+    out-of-sample signals for the next `step` bars. This avoids the
+    single train/test split bias and gives a more realistic estimate
+    of live performance.
+
+    Returns dict with: signals, fold_results, n_folds.
+    """
+    signals = pd.Series(0, index=df.index, dtype=int)
+    fold_results = []
+    n = len(df)
+    pos = 0
+
+    while pos + train_window + step <= n:
+        # Training slice: exclude last target_shift rows (boundary gap)
+        train_raw = df.iloc[pos: pos + train_window - target_shift].copy()
+        test = df.iloc[pos + train_window: pos + train_window + step]
+
+        train_raw["Target"] = (
+            (train_raw["Close"].shift(-target_shift) > train_raw["Close"]).astype(int)
+        )
+        train_raw = train_raw.iloc[:-target_shift]
+
+        X_train = train_raw[features].replace([np.inf, -np.inf], np.nan).dropna()
+        y_train = train_raw["Target"].loc[X_train.index]
+        X_test = test[features].replace([np.inf, -np.inf], np.nan).dropna()
+
+        if len(X_train) < 30 or len(y_train.unique()) < 2 or len(X_test) == 0:
+            pos += step
+            continue
+
+        ModelClass = MODEL_REGISTRY[model_type]
+        model = (
+            ModelClass(max_iter=1000, random_state=42)
+            if model_type == "Logistic Regression"
+            else ModelClass(n_estimators=100, random_state=42)
+        )
+
+        try:
+            model.fit(X_train, y_train)
+            proba = model.predict_proba(X_test)[:, 1]
+            fold_sigs = np.where(proba > threshold, 1, np.where(proba < (1 - threshold), -1, 0))
+            signals.loc[X_test.index] = fold_sigs
+            fold_results.append({
+                "fold": len(fold_results) + 1,
+                "train_start": df.index[pos].isoformat(),
+                "train_end": df.index[pos + train_window - 1].isoformat(),
+                "test_start": df.index[pos + train_window].isoformat(),
+                "test_end": X_test.index[-1].isoformat(),
+                "n_train": len(X_train),
+                "n_test": len(X_test),
+            })
+        except Exception:
+            pass
+
+        pos += step
+
+    return {
+        "signals": signals.shift(1).fillna(0).astype(int),
+        "fold_results": fold_results,
+        "n_folds": len(fold_results),
+    }
 
 
 def ml_strategy(
