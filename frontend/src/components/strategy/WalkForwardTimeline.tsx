@@ -8,6 +8,9 @@ interface FoldResult {
   test_end: string;
   n_train: number;
   n_test: number;
+  accuracy?: number;
+  f1?: number;
+  roc_auc?: number | null;
 }
 
 interface Props {
@@ -35,7 +38,7 @@ export function WalkForwardTimeline({ folds, nFolds }: Props) {
   }
 
   function fmtDate(iso: string) {
-    return iso.split("T")[0].slice(0, 7); // YYYY-MM
+    return iso.split("T")[0].slice(0, 7);
   }
 
   return (
@@ -62,7 +65,7 @@ export function WalkForwardTimeline({ folds, nFolds }: Props) {
           const testWidth = pct(toMs(fold.test_end)) - testLeft;
 
           return (
-            <div key={fold.fold} className="relative h-5 rounded overflow-hidden bg-muted/20">
+            <div key={fold.fold} className="relative h-6 rounded overflow-hidden bg-muted/20">
               <div
                 className="absolute h-full bg-blue-500/30 border border-blue-500/40 rounded-sm"
                 style={{ left: `${trainLeft}%`, width: `${trainWidth}%` }}
@@ -73,9 +76,16 @@ export function WalkForwardTimeline({ folds, nFolds }: Props) {
                 style={{ left: `${testLeft}%`, width: `${testWidth}%` }}
                 title={`Test: ${fmtDate(fold.test_start)} – ${fmtDate(fold.test_end)} (${fold.n_test} bars)`}
               />
-              <span className="absolute left-1 top-0.5 text-[10px] text-muted-foreground leading-none">
+              <span className="absolute left-1 top-1 text-[10px] text-muted-foreground leading-none">
                 Fold {fold.fold}
               </span>
+              {fold.accuracy != null && (
+                <span className="absolute right-1 top-1 text-[10px] font-mono text-muted-foreground leading-none">
+                  Acc {(fold.accuracy * 100).toFixed(0)}%
+                  {fold.f1 != null && <span className="ml-1.5">F1 {(fold.f1 * 100).toFixed(0)}%</span>}
+                  {fold.roc_auc != null && <span className="ml-1.5">AUC {(fold.roc_auc * 100).toFixed(0)}%</span>}
+                </span>
+              )}
             </div>
           );
         })}

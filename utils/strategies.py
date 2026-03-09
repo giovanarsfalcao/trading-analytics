@@ -176,7 +176,9 @@ def walk_forward_ml_strategy(
             proba = model.predict_proba(X_test)[:, 1]
             fold_sigs = np.where(proba > threshold, 1, np.where(proba < (1 - threshold), -1, 0))
             signals.loc[X_test.index] = fold_sigs
-            fold_results.append({
+
+            # Per-fold metrics: build test targets from actual future returns
+            fold_entry = {
                 "fold": len(fold_results) + 1,
                 "train_start": df.index[pos].isoformat(),
                 "train_end": df.index[pos + train_window - 1].isoformat(),
@@ -184,7 +186,20 @@ def walk_forward_ml_strategy(
                 "test_end": X_test.index[-1].isoformat(),
                 "n_train": len(X_train),
                 "n_test": len(X_test),
-            })
+            }
+            test_target = (df["Close"].shift(-target_shift) > df["Close"]).astype(int)
+            y_test = test_target.loc[X_test.index].dropna()
+            common = y_test.index.intersection(X_test.index)
+            if len(common) > 0:
+                y_t = y_test.loc[common]
+                preds = (proba[X_test.index.isin(common)] > threshold).astype(int)
+                fold_entry["accuracy"] = float(accuracy_score(y_t, preds))
+                fold_entry["f1"] = float(f1_score(y_t, preds, zero_division=0))
+                try:
+                    fold_entry["roc_auc"] = float(roc_auc_score(y_t, proba[X_test.index.isin(common)])) if len(y_t.unique()) > 1 else None
+                except Exception:
+                    fold_entry["roc_auc"] = None
+            fold_results.append(fold_entry)
         except Exception:
             pass
 

@@ -173,7 +173,6 @@ class WalkForwardRequest(BaseModel):
 
 
 class ParamSweepRequest(BaseModel):
-    ticker: str
     period: str = "2y"
     strategy_name: str
     param_name: str
@@ -553,9 +552,13 @@ async def param_sweep(req: ParamSweepRequest):
     df, df_ind = _fetch_and_prepare(req.ticker, req.period)
     strategy_fn = STRATEGY_REGISTRY[req.strategy_name]["fn"]
 
+    # Convert float params to int where appropriate (JS sends all numbers as float)
+    base = {k: int(v) if isinstance(v, float) and v == int(v) else v for k, v in req.base_params.items()}
+
     results = []
     for val in req.param_values:
-        params = {**req.base_params, req.param_name: val}
+        clean_val = int(val) if isinstance(val, float) and val == int(val) else val
+        params = {**base, req.param_name: clean_val}
         try:
             signals = strategy_fn(df_ind, **params)
             bt = run_backtest(df, signals, initial_capital=req.initial_capital, commission=req.commission)

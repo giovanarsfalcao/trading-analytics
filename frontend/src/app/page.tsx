@@ -114,19 +114,39 @@ function StrategyStage() {
                 </Card>
               )}
 
-              {ml.fold_results && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm">Walk-Forward Fold Timeline</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <WalkForwardTimeline
-                      folds={ml.fold_results as any[]}
-                      nFolds={ml.n_folds as number}
-                    />
-                  </CardContent>
-                </Card>
-              )}
+              {ml.fold_results && (() => {
+                const folds = ml.fold_results as Array<{ accuracy?: number; f1?: number; roc_auc?: number | null }>;
+                const withAcc = folds.filter((f) => f.accuracy != null);
+                const avg = (key: "accuracy" | "f1" | "roc_auc") => {
+                  const vals = withAcc.map((f) => f[key]).filter((v): v is number => v != null);
+                  return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+                };
+                const avgAcc = avg("accuracy");
+                const avgF1 = avg("f1");
+                const avgAuc = avg("roc_auc");
+                return (
+                  <>
+                    {avgAcc != null && (
+                      <div className="grid grid-cols-3 gap-3">
+                        <KPICard label="Avg Accuracy (OOS)" value={fmt(avgAcc, { pct: true })} />
+                        {avgF1 != null && <KPICard label="Avg F1 (OOS)" value={fmt(avgF1, { pct: true })} />}
+                        {avgAuc != null && <KPICard label="Avg ROC AUC (OOS)" value={fmt(avgAuc, { pct: true })} />}
+                      </div>
+                    )}
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm">Walk-Forward Fold Timeline</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <WalkForwardTimeline
+                          folds={ml.fold_results as any[]}
+                          nFolds={ml.n_folds as number}
+                        />
+                      </CardContent>
+                    </Card>
+                  </>
+                );
+              })()}
             </>
           )}
 

@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useStore } from "@/stores/store";
 import { api } from "@/lib/api";
 import type { StrategyRegistry } from "@/types";
+import { ParamSweepPanel } from "./ParamSweepPanel";
 
 const ML_MODELS = ["Random Forest", "Gradient Boosting", "Logistic Regression"];
 const DEFAULT_FEATURES = ["RSI", "MACD_HIST", "MFI", "BB_Percent", "STOCH_K"];
@@ -116,6 +117,7 @@ export function StrategyForm() {
       <TabsList>
         <TabsTrigger value="rule">Rule-Based</TabsTrigger>
         <TabsTrigger value="ml">Machine Learning</TabsTrigger>
+        <TabsTrigger value="sweep">Parameter Sweep</TabsTrigger>
       </TabsList>
 
       <TabsContent value="rule" className="space-y-4">
@@ -224,6 +226,10 @@ export function StrategyForm() {
             </Button>
           </CardContent>
         </Card>
+      </TabsContent>
+
+      <TabsContent value="sweep" className="space-y-4">
+        <ParamSweepPanel />
       </TabsContent>
     </Tabs>
   );
