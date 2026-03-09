@@ -6,12 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { KPICard, fmt } from "@/components/shared/KPICard";
 import { useStore } from "@/stores/store";
 import { api } from "@/lib/api";
 import { EquityCurve } from "./EquityCurve";
 import { DrawdownChart } from "./DrawdownChart";
 import { TradeTable } from "./TradeTable";
+import { ComparisonPanel } from "./ComparisonPanel";
 
 const BENCHMARKS = [
   { label: "S&P 500", value: "^GSPC" },
@@ -22,7 +24,11 @@ const BENCHMARKS = [
 
 export function BacktestPanel() {
   const store = useStore();
-  const { ticker, period, strategyName, strategyParams, tradeStats, portfolio, benchmarkPortfolio, trades, setBacktestData, setLoading, setError } = store;
+  const {
+    ticker, period, strategyName, strategyParams,
+    tradeStats, portfolio, benchmarkPortfolio, trades,
+    comparisonResults, setBacktestData, addComparison, setLoading, setError,
+  } = store;
   const [capital, setCapital] = useState(10000);
   const [sizing, setSizing] = useState("fixed");
   const [pct, setPct] = useState(1.0);
@@ -71,6 +77,12 @@ export function BacktestPanel() {
     }
   }
 
+  function handleAddToComparison() {
+    if (!tradeStats || !portfolio || !strategyName) return;
+    const label = `${strategyName} (${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })})`;
+    addComparison({ label, strategyName, portfolio, tradeStats });
+  }
+
   return (
     <div className="space-y-6">
       <Card>
@@ -109,7 +121,6 @@ export function BacktestPanel() {
             </div>
           </div>
 
-          {/* Conditional controls */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
             {sizing === "percentage" && (
               <div className="space-y-1">
@@ -138,22 +149,47 @@ export function BacktestPanel() {
       </Card>
 
       {tradeStats && (
-        <>
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-            <KPICard label="Total Return" value={fmt(tradeStats.total_return, { pct: true })} deltaType={tradeStats.total_return > 0 ? "positive" : "negative"} />
-            <KPICard label="Ann. Return" value={fmt(tradeStats.annualized_return, { pct: true })} />
-            <KPICard label="Max Drawdown" value={fmt(tradeStats.max_drawdown, { pct: true })} deltaType="negative" />
-            <KPICard label="Win Rate" value={fmt(tradeStats.win_rate, { pct: true })} />
-            <KPICard label="Profit Factor" value={fmt(tradeStats.profit_factor)} />
-            <KPICard label="Sharpe" value={fmt(tradeStats.sharpe_ratio)} />
+        <Tabs defaultValue="results">
+          <div className="flex items-center justify-between mb-3">
+            <TabsList>
+              <TabsTrigger value="results">Results</TabsTrigger>
+              <TabsTrigger value="comparison">
+                Comparison {comparisonResults.length > 0 && `(${comparisonResults.length})`}
+              </TabsTrigger>
+            </TabsList>
+            <Button size="sm" variant="outline" onClick={handleAddToComparison}>
+              + Add to Comparison
+            </Button>
           </div>
-          <EquityCurve portfolio={portfolio} benchmark={benchmarkPortfolio} />
-          <div>
-            <h3 className="text-xs font-medium text-muted-foreground mb-2">Drawdown</h3>
-            <DrawdownChart portfolio={portfolio} />
-          </div>
-          {trades.length > 0 && <TradeTable trades={trades} />}
-        </>
+
+          <TabsContent value="results" className="space-y-6">
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+              <KPICard label="Total Return" value={fmt(tradeStats.total_return, { pct: true })} deltaType={tradeStats.total_return > 0 ? "positive" : "negative"} />
+              <KPICard label="Ann. Return" value={fmt(tradeStats.annualized_return, { pct: true })} />
+              <KPICard label="Max Drawdown" value={fmt(tradeStats.max_drawdown, { pct: true })} deltaType="negative" />
+              <KPICard label="Win Rate" value={fmt(tradeStats.win_rate, { pct: true })} />
+              <KPICard label="Profit Factor" value={fmt(tradeStats.profit_factor)} />
+              <KPICard label="Sharpe" value={fmt(tradeStats.sharpe_ratio)} />
+            </div>
+            <EquityCurve portfolio={portfolio} benchmark={benchmarkPortfolio} />
+            <div>
+              <h3 className="text-xs font-medium text-muted-foreground mb-2">Drawdown</h3>
+              <DrawdownChart portfolio={portfolio} />
+            </div>
+            {trades.length > 0 && <TradeTable trades={trades} />}
+          </TabsContent>
+
+          <TabsContent value="comparison">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Strategy Comparison</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ComparisonPanel />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       )}
     </div>
   );

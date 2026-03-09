@@ -2,9 +2,10 @@
 
 import { useStore } from "@/stores/store";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export function Header() {
-  const { ticker, strategyName, loading, error } = useStore();
+  const { ticker, strategyName, loading, error, clearSession } = useStore();
   const isLoading = Object.values(loading).some(Boolean);
 
   return (
@@ -27,6 +28,14 @@ export function Header() {
         </div>
       )}
       {error && <p className="text-xs text-red-400 truncate max-w-md">{error}</p>}
+      <Button
+        size="sm"
+        variant="ghost"
+        className="text-xs text-muted-foreground hover:text-foreground"
+        onClick={clearSession}
+      >
+        Clear Session
+      </Button>
     </header>
   );
 }

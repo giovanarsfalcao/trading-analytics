@@ -9,6 +9,7 @@ import { FundamentalsGrid } from "@/components/explore/FundamentalsGrid";
 import { StrategyForm } from "@/components/strategy/StrategyForm";
 import { SignalChart } from "@/components/strategy/SignalChart";
 import { FeatureImportance } from "@/components/strategy/FeatureImportance";
+import { WalkForwardTimeline } from "@/components/strategy/WalkForwardTimeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BacktestPanel } from "@/components/backtest/BacktestPanel";
 import { RiskPanel } from "@/components/risk/RiskPanel";
@@ -109,6 +110,20 @@ function StrategyStage() {
                   </CardHeader>
                   <CardContent>
                     <FeatureImportance importance={ml.feature_importance as Record<string, number>} />
+                  </CardContent>
+                </Card>
+              )}
+
+              {ml.fold_results && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm">Walk-Forward Fold Timeline</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <WalkForwardTimeline
+                      folds={ml.fold_results as any[]}
+                      nFolds={ml.n_folds as number}
+                    />
                   </CardContent>
                 </Card>
               )}

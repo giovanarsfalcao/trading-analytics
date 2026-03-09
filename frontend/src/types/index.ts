@@ -103,6 +103,14 @@ export interface MonteCarloResult {
   final_values_histogram: number[];
 }
 
+export interface ComparisonEntry {
+  id: string;
+  label: string;
+  strategyName: string;
+  portfolio: PortfolioPoint[];
+  tradeStats: TradeStats;
+}
+
 export interface StrategyParam {
   label: string;
   min: number;
