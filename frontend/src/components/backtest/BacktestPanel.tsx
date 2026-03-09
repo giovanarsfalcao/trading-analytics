@@ -19,7 +19,7 @@ const BENCHMARKS = [
   { label: "S&P 500", value: "^GSPC" },
   { label: "NASDAQ-100", value: "QQQ" },
   { label: "Russell 2000", value: "IWM" },
-  { label: "No Benchmark", value: "" },
+  { label: "No Benchmark", value: "none" },
 ];
 
 export function BacktestPanel() {
@@ -60,7 +60,7 @@ export function BacktestPanel() {
         slippage: slippage / 100,
         spread: spread / 100,
         kelly_fraction: kellyFraction,
-        benchmark: benchmark || undefined,
+        benchmark: benchmark !== "none" ? benchmark : undefined,
       }) as any;
       setBacktestData({
         initialCapital: capital,
