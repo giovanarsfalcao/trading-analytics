@@ -21,7 +21,7 @@ export function FeatureImportance({ importance }: Props) {
         <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "#a1a1aa" }} width={90} />
         <Tooltip
           contentStyle={{ backgroundColor: "#1c1c2e", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }}
-          formatter={(v: number) => [v.toFixed(4), "Importance"]}
+          formatter={(v) => [Number(v ?? 0).toFixed(4), "Importance"]}
           labelStyle={{ color: "#a1a1aa" }}
         />
         <Bar dataKey="value" radius={[0, 3, 3, 0]}>
