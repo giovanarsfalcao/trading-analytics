@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { TickerSearch } from "@/components/explore/TickerSearch";
@@ -17,41 +18,114 @@ import { ReportPanel } from "@/components/report/ReportPanel";
 import { KPICard, fmt } from "@/components/shared/KPICard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useStore } from "@/stores/store";
+import { api } from "@/lib/api";
 import { WelcomePage } from "@/components/welcome/WelcomePage";
+import { Slider } from "@/components/ui/slider";
+import type { IndicatorParams } from "@/components/explore/TickerSearch";
 
-const INDICATORS = ["MACD", "RSI", "Bollinger Bands", "Stochastic", "MFI", "ATR", "VWAP"];
+const INDICATORS = ["MACD", "RSI", "Bollinger Bands", "MFI"];
+
+function SliderField({
+  label, value, min, max, step, onChange, format,
+}: {
+  label: string; value: number; min: number; max: number; step: number;
+  onChange: (v: number) => void; format?: (v: number) => string;
+}) {
+  const fmt = (v: number) => format ? format(v) : v;
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between text-xs text-muted-foreground">
+        <span>{label}</span>
+        <span className="font-mono font-medium text-foreground">{fmt(value)}</span>
+      </div>
+      <Slider min={min} max={max} step={step} value={[value]} onValueChange={([v]: number[]) => onChange(v)} />
+      <div className="flex justify-between text-[10px] text-muted-foreground/50 font-mono">
+        <span>{fmt(min)}</span>
+        <span>{fmt(max)}</span>
+      </div>
+    </div>
+  );
+}
+
+const INDICATOR_PARAMS: Record<string, (params: IndicatorParams, set: <K extends keyof IndicatorParams>(k: K, v: IndicatorParams[K]) => void) => React.ReactNode> = {
+  MACD: (p, s) => (
+    <div className="grid grid-cols-3 gap-6 mb-4">
+      <SliderField label="Fast" value={p.macd_fast} min={5} max={50} step={1} onChange={(v) => s("macd_fast", v)} />
+      <SliderField label="Slow" value={p.macd_slow} min={10} max={100} step={1} onChange={(v) => s("macd_slow", v)} />
+      <SliderField label="Signal" value={p.macd_signal} min={3} max={30} step={1} onChange={(v) => s("macd_signal", v)} />
+    </div>
+  ),
+  RSI: (p, s) => (
+    <div className="grid grid-cols-3 gap-6 mb-4">
+      <SliderField label="Period" value={p.rsi_period} min={2} max={50} step={1} onChange={(v) => s("rsi_period", v)} />
+    </div>
+  ),
+  "Bollinger Bands": (p, s) => (
+    <div className="grid grid-cols-3 gap-6 mb-4">
+      <SliderField label="Period" value={p.bb_period} min={5} max={50} step={1} onChange={(v) => s("bb_period", v)} />
+      <SliderField label="Std Dev" value={p.bb_std} min={1} max={3.5} step={0.1} onChange={(v) => s("bb_std", v)} format={(v) => v.toFixed(1)} />
+    </div>
+  ),
+};
 
 function ExploreStage() {
-  const { ohlcv, indicators, fundamentals } = useStore();
-  if (ohlcv.length === 0) return <TickerSearch />;
+  const { ticker, period, ohlcv, indicators, fundamentals, setExploreData, setLoading, setError } = useStore();
+  const [params, setParams] = useState<IndicatorParams>({
+    rsi_period: 14, macd_fast: 12, macd_slow: 26, macd_signal: 9,
+    bb_period: 20, bb_std: 2.0, sma_fast: 20, sma_medium: 50, sma_slow: 200,
+  });
+  const isFirstRender = useRef(true);
+
+  const set = <K extends keyof IndicatorParams>(key: K, val: IndicatorParams[K]) =>
+    setParams((prev: IndicatorParams) => ({ ...prev, [key]: val }));
+
+  useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
+    if (!ticker) return;
+    const timer = setTimeout(async () => {
+      setLoading("explore", true);
+      try {
+        const data = await api.explore(ticker, period, params) as {
+          ticker: string; ohlcv: []; indicators: Record<string, []>; fundamentals: null;
+        };
+        setExploreData({ ticker: data.ticker, period, ohlcv: data.ohlcv, indicators: data.indicators, fundamentals: data.fundamentals });
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to refresh indicators");
+      } finally {
+        setLoading("explore", false);
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [params]);
+
+  if (ohlcv.length === 0) return <TickerSearch indicatorParams={params} />;
 
   return (
     <div className="space-y-6">
-      <TickerSearch />
+      <TickerSearch indicatorParams={params} />
       <Tabs defaultValue="price">
         <TabsList>
           <TabsTrigger value="price">Price</TabsTrigger>
-          <TabsTrigger value="indicators">Indicators</TabsTrigger>
+          <TabsTrigger value="indicators">Technical Indicators</TabsTrigger>
           {fundamentals && <TabsTrigger value="fundamentals">Fundamentals</TabsTrigger>}
         </TabsList>
         <TabsContent value="price">
           <CandlestickChart data={ohlcv} />
         </TabsContent>
-        <TabsContent value="indicators" className="space-y-4">
+        <TabsContent value="indicators" className="space-y-6">
           {INDICATORS.map((name) => {
             const hasData = Object.keys(indicators).some((k) =>
               (name === "MACD" && k.startsWith("MACD")) ||
               (name === "RSI" && k === "RSI") ||
               (name === "Bollinger Bands" && k.startsWith("BB_")) ||
-              (name === "Stochastic" && k.startsWith("STOCH")) ||
-              (name === "MFI" && k === "MFI") ||
-              (name === "ATR" && k === "ATR") ||
-              (name === "VWAP" && k.startsWith("VWAP"))
+              (name === "MFI" && k === "MFI")
             );
             if (!hasData) return null;
+            const paramControls = INDICATOR_PARAMS[name];
             return (
               <div key={name}>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">{name}</h3>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">{name}</h3>
+                {paramControls && paramControls(params, set)}
                 <IndicatorPanel name={name} data={indicators} />
               </div>
             );
