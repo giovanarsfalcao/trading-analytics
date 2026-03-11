@@ -17,6 +17,7 @@ import { ReportPanel } from "@/components/report/ReportPanel";
 import { KPICard, fmt } from "@/components/shared/KPICard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useStore } from "@/stores/store";
+import { WelcomePage } from "@/components/welcome/WelcomePage";
 
 const INDICATORS = ["MACD", "RSI", "Bollinger Bands", "Stochastic", "MFI", "ATR", "VWAP"];
 
@@ -189,7 +190,10 @@ const STAGE_TITLES = ["", "Explore", "Strategy", "Backtest", "Risk Analysis", "R
 
 export default function Dashboard() {
   const activeStage = useStore((s) => s.activeStage);
+  const welcomeDismissed = useStore((s) => s.welcomeDismissed);
   const Stage = STAGES[activeStage];
+
+  if (!welcomeDismissed) return <WelcomePage />;
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">

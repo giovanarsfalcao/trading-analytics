@@ -50,6 +50,7 @@ interface TradingState {
   // UI
   loading: Record<string, boolean>;
   error: string | null;
+  welcomeDismissed: boolean;
 
   // Actions
   setActiveStage: (stage: number) => void;
@@ -58,6 +59,7 @@ interface TradingState {
   setLoading: (key: string, value: boolean) => void;
   setError: (error: string | null) => void;
   clearSession: () => void;
+  dismissWelcome: () => void;
 
   setExploreData: (data: {
     ticker: string;
@@ -94,7 +96,7 @@ interface TradingState {
 const BLANK: Omit<TradingState, "loading" | "error" | keyof Pick<TradingState,
   "setActiveStage" | "completeStage" | "clearDownstream" | "setLoading" | "setError" | "clearSession" |
   "setExploreData" | "setStrategyData" | "setBacktestData" | "setRiskData" | "setMonteCarloData" |
-  "addComparison" | "removeComparison" | "clearComparison"
+  "addComparison" | "removeComparison" | "clearComparison" | "dismissWelcome"
 >> = {
   activeStage: 1,
   completedStages: [],
@@ -117,6 +119,7 @@ const BLANK: Omit<TradingState, "loading" | "error" | keyof Pick<TradingState,
   riskMetrics: null,
   monteCarloResult: null,
   comparisonResults: [],
+  welcomeDismissed: false,
 };
 
 export const useStore = create<TradingState>()(
@@ -146,8 +149,10 @@ export const useStore = create<TradingState>()(
       setError: (error) => set((s) => { s.error = error; }),
 
       clearSession: () => set((s) => {
-        Object.assign(s, { ...BLANK, loading: {}, error: null });
+        Object.assign(s, { ...BLANK, loading: {}, error: null, welcomeDismissed: false });
       }),
+
+      dismissWelcome: () => set((s) => { s.welcomeDismissed = true; }),
 
       setExploreData: (data) => set((s) => {
         const tickerChanged = s.ticker !== data.ticker;
@@ -231,6 +236,7 @@ export const useStore = create<TradingState>()(
         riskMetrics: state.riskMetrics,
         monteCarloResult: state.monteCarloResult,
         comparisonResults: state.comparisonResults,
+        welcomeDismissed: state.welcomeDismissed,
       }),
     }
   )
