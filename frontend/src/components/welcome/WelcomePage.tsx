@@ -131,6 +131,9 @@ export function WelcomePage() {
       <p className="mt-4 text-xs text-muted-foreground">
         Search for any ticker to begin — e.g. AAPL, NVDA, SPY
       </p>
+      <p className="absolute bottom-5 text-xs text-muted-foreground/40">
+        © {new Date().getFullYear()} Giovana Falcao
+      </p>
     </div>
   );
 }

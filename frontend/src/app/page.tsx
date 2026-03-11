@@ -277,6 +277,9 @@ export default function Dashboard() {
         <main className="flex-1 overflow-y-auto p-6">
           <h2 className="text-xl font-semibold mb-6">{STAGE_TITLES[activeStage]}</h2>
           <Stage />
+          <p className="mt-10 text-center text-xs text-muted-foreground/40">
+            © {new Date().getFullYear()} Giovana Falcao
+          </p>
         </main>
       </div>
     </div>
