@@ -48,6 +48,7 @@ class _StrategyBase(BaseModel):
     train_ratio: float = 0.8
     threshold: float = 0.55
     target_shift: int = 1
+    fundamental_values: dict[str, float] | None = None
 
     @field_validator("train_ratio")
     @classmethod
@@ -173,6 +174,7 @@ class WalkForwardRequest(BaseModel):
 
 
 class ParamSweepRequest(BaseModel):
+    ticker: str
     period: str = "2y"
     strategy_name: str
     param_name: str
@@ -259,6 +261,7 @@ def _generate_signals(df_ind: pd.DataFrame, req):
             train_ratio=req.train_ratio,
             threshold=req.threshold,
             target_shift=req.target_shift,
+            fundamental_values=req.fundamental_values or None,
         )
         signals = result["signals"]
         ml_metrics = {

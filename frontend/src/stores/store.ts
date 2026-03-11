@@ -86,6 +86,7 @@ interface TradingState {
     dailyReturns: number[];
   }) => void;
 
+  clearStrategyData: () => void;
   setRiskData: (metrics: RiskMetrics) => void;
   setMonteCarloData: (result: MonteCarloResult) => void;
   addComparison: (entry: Omit<ComparisonEntry, "id">) => void;
@@ -95,7 +96,7 @@ interface TradingState {
 
 const BLANK: Omit<TradingState, "loading" | "error" | keyof Pick<TradingState,
   "setActiveStage" | "completeStage" | "clearDownstream" | "setLoading" | "setError" | "clearSession" |
-  "setExploreData" | "setStrategyData" | "setBacktestData" | "setRiskData" | "setMonteCarloData" |
+  "setExploreData" | "setStrategyData" | "clearStrategyData" | "setBacktestData" | "setRiskData" | "setMonteCarloData" |
   "addComparison" | "removeComparison" | "clearComparison" | "dismissWelcome"
 >> = {
   activeStage: 1,
@@ -153,6 +154,13 @@ export const useStore = create<TradingState>()(
       }),
 
       dismissWelcome: () => set((s) => { s.welcomeDismissed = true; }),
+
+      clearStrategyData: () => set((s) => {
+        s.strategyName = null;
+        s.signals = [];
+        s.signalSummary = null;
+        s.mlMetrics = null;
+      }),
 
       setExploreData: (data) => set((s) => {
         const tickerChanged = s.ticker !== data.ticker;

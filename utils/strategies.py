@@ -219,6 +219,7 @@ def ml_strategy(
     train_ratio: float = 0.8,
     threshold: float = 0.5,
     target_shift: int = 1,
+    fundamental_values: dict | None = None,
 ) -> dict:
     """
     Train an ML model for binary classification (next-day up/down).
@@ -227,6 +228,11 @@ def ml_strategy(
     feature_importance, confusion_matrix, probabilities, train_size, test_size.
     """
     data = df.copy()
+
+    if fundamental_values:
+        for k, v in fundamental_values.items():
+            data[k] = v
+        features = features + [k for k in fundamental_values if k not in features]
 
     # Target: 1 if price goes up in target_shift days (forward-return label).
     # Remove the last target_shift rows: they have NaN targets AND rows at the

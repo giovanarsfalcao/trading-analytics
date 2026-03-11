@@ -21,7 +21,11 @@ interface SweepResult {
   error?: string;
 }
 
-export function ParamSweepPanel() {
+interface Props {
+  onUseBest?: (paramName: string, value: number) => void;
+}
+
+export function ParamSweepPanel({ onUseBest }: Props) {
   const { ticker, period } = useStore();
   const [registry, setRegistry] = useState<StrategyRegistry>({});
   const [stratName, setStratName] = useState("");
@@ -81,16 +85,10 @@ export function ParamSweepPanel() {
     try {
       const values: number[] = [];
       for (let v = start; v <= end; v += step) values.push(v);
-      if (values.length === 0 || values.length > 50) {
-        setError(values.length === 0 ? "No values in range" : "Too many values (max 50). Increase step size.");
-        return;
-      }
-      // Build base params with defaults for non-swept params
       const baseParams: Record<string, number> = {};
       Object.entries(registry[stratName] || {}).forEach(([k, spec]) => {
         if (k !== paramName) baseParams[k] = spec.default;
       });
-
       const res = await api.paramSweep({
         ticker, period,
         strategy_name: stratName,
@@ -106,6 +104,13 @@ export function ParamSweepPanel() {
     }
   }
 
+  const sweepCount = step > 0 ? Math.floor((end - start) / step) + 1 : 0;
+  const sweepValid = sweepCount > 0 && sweepCount <= 50;
+
+  const bestResult = results.length > 0
+    ? results.reduce((a, b) => (a.sharpe_ratio ?? -Infinity) > (b.sharpe_ratio ?? -Infinity) ? a : b)
+    : null;
+
   const params = Object.keys(registry[stratName] || {});
 
   return (
@@ -114,6 +119,15 @@ export function ParamSweepPanel() {
         <CardTitle className="text-sm">Parameter Sweep</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Explanation block */}
+        <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-1">
+          <p className="text-xs font-semibold text-foreground">What is a Parameter Sweep?</p>
+          <p className="text-[10px] text-muted-foreground/80 leading-relaxed">
+            Tests a strategy parameter across a range of values and shows which delivers the best
+            risk-adjusted performance (Sharpe). Use the result as guidance — be mindful of overfitting risk.
+          </p>
+        </div>
+
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 items-end">
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground">Strategy</label>
@@ -147,13 +161,22 @@ export function ParamSweepPanel() {
           </div>
         </div>
 
-        <Button onClick={runSweep} disabled={loading || !ticker} className="w-full">
+        {/* Live counter */}
+        {step > 0 && (
+          <p className={`text-xs font-medium ${sweepValid ? "text-emerald-400" : "text-red-400"}`}>
+            → {sweepCount} value{sweepCount !== 1 ? "s" : ""} will be tested
+            {sweepCount > 50 && " — max 50, increase the step size"}
+            {sweepCount <= 0 && " — invalid range"}
+          </p>
+        )}
+
+        <Button onClick={runSweep} disabled={loading || !ticker || !sweepValid} className="w-full">
           {loading ? "Running Sweep..." : "Run Parameter Sweep"}
         </Button>
 
         {error && <p className="text-xs text-red-400">{error}</p>}
 
-        {results.length > 0 && (
+        {results.length > 0 && bestResult && (
           <>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={results}>
@@ -175,6 +198,19 @@ export function ParamSweepPanel() {
               </LineChart>
             </ResponsiveContainer>
 
+            {/* Best result callout */}
+            <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 px-4 py-2.5">
+              <p className="text-xs text-muted-foreground">
+                Best: <span className="font-semibold text-foreground">{paramName} = {bestResult.param_value}</span>
+                <span className="ml-2 text-muted-foreground/60">(Sharpe {fmt(bestResult.sharpe_ratio ?? 0)})</span>
+              </p>
+              {onUseBest && (
+                <Button size="sm" variant="outline" className="h-6 text-xs px-2" onClick={() => onUseBest(paramName, bestResult.param_value)}>
+                  ← Use in Rule-Based
+                </Button>
+              )}
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
@@ -189,11 +225,13 @@ export function ParamSweepPanel() {
                 </thead>
                 <tbody>
                   {results.map((r) => {
-                    const best = results.reduce((a, b) => (a.sharpe_ratio ?? 0) > (b.sharpe_ratio ?? 0) ? a : b);
-                    const isBest = r === best;
+                    const isBest = r === bestResult;
                     return (
                       <tr key={r.param_value} className={`border-b border-border/50 ${isBest ? "bg-blue-500/5" : ""}`}>
-                        <td className="py-1.5 pr-3 font-mono font-medium">{r.param_value}</td>
+                        <td className="py-1.5 pr-3 font-mono font-medium">
+                          {isBest && <span className="text-amber-400 mr-1">★</span>}
+                          {r.param_value}
+                        </td>
                         <td className="text-right py-1.5 px-2 font-mono">{fmt(r.sharpe_ratio ?? 0)}</td>
                         <td className={`text-right py-1.5 px-2 font-mono ${(r.total_return ?? 0) > 0 ? "text-emerald-400" : "text-red-400"}`}>
                           {fmt(r.total_return ?? 0, { pct: true })}
