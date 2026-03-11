@@ -18,14 +18,8 @@ const tooltipStyle = {
 export function IndicatorPanel({ name, data }: Props) {
   if (name === "MACD") return <MACDChart data={data} />;
   if (name === "RSI") return <BandChart data={data} cols={["RSI"]} upper={70} lower={30} label="RSI" />;
-  if (name === "Stochastic") return <BandChart data={data} cols={["STOCH_K", "STOCH_D"]} upper={80} lower={20} label="Stochastic" />;
   if (name === "MFI") return <BandChart data={data} cols={["MFI"]} upper={80} lower={20} label="MFI" />;
-  if (name === "ATR") return <SimpleLineChart data={data} col="ATR" />;
   if (name === "Bollinger Bands") return <MultiLineChart data={data} cols={["BB_Upper", "BB_Middle", "BB_Lower"]} label="Bollinger Bands" />;
-  if (name === "VWAP") {
-    const col = Object.keys(data).find((k) => k.startsWith("VWAP")) ?? "";
-    return col ? <SimpleLineChart data={data} col={col} /> : null;
-  }
   return null;
 }
 

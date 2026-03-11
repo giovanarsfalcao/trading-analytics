@@ -8,10 +8,11 @@ interface KPICardProps {
   value: string;
   delta?: string;
   deltaType?: "positive" | "negative" | "neutral";
+  description?: string;
   className?: string;
 }
 
-export function KPICard({ label, value, delta, deltaType = "neutral", className }: KPICardProps) {
+export function KPICard({ label, value, delta, deltaType = "neutral", description, className }: KPICardProps) {
   return (
     <Card className={cn("bg-card border-border", className)}>
       <CardContent className="p-4">
@@ -26,6 +27,9 @@ export function KPICard({ label, value, delta, deltaType = "neutral", className 
           )}>
             {delta}
           </p>
+        )}
+        {description && (
+          <p className="text-[10px] text-muted-foreground/60 mt-1 leading-tight">{description}</p>
         )}
       </CardContent>
     </Card>

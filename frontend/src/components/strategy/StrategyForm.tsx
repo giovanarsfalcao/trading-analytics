@@ -12,7 +12,8 @@ import type { StrategyRegistry } from "@/types";
 import { ParamSweepPanel } from "./ParamSweepPanel";
 
 const ML_MODELS = ["Random Forest", "Gradient Boosting", "Logistic Regression"];
-const DEFAULT_FEATURES = ["RSI", "MACD_HIST", "MFI", "BB_Percent", "STOCH_K"];
+const DEFAULT_FEATURES = ["RSI", "MACD_HIST", "MFI", "BB_Percent"];
+const EXCLUDED_FEATURES = ["Open", "High", "Low", "Close", "Volume", "ATR", "VWAP", "STOCH_K", "STOCH_D"];
 
 export function StrategyForm() {
   const { ticker, period, indicators, setStrategyData, setLoading, setError } = useStore();
@@ -109,7 +110,7 @@ export function StrategyForm() {
   }
 
   const availableFeatures = Object.keys(indicators).filter(
-    (k) => !["Open", "High", "Low", "Close", "Volume"].includes(k)
+    (k) => !EXCLUDED_FEATURES.includes(k)
   );
 
   return (

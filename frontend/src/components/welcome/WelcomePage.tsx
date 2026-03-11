@@ -88,12 +88,12 @@ export function WelcomePage() {
       </div>
 
       {/* Workflow strip */}
-      <div className="mb-16 flex items-start gap-2">
+      <div className="mb-16 flex items-stretch gap-2">
         {STAGES.map((stage, i) => {
           const Icon = stage.icon;
           const isActive = i === activeIndex;
           return (
-            <div key={stage.number} className="flex items-start gap-2">
+            <div key={stage.number} className="flex items-stretch gap-2">
               <div
                 onMouseEnter={() => handleHover(i)}
                 onMouseLeave={handleLeave}
@@ -116,7 +116,7 @@ export function WelcomePage() {
                 </p>
               </div>
               {i < STAGES.length - 1 && (
-                <ChevronRight className="mt-5 h-4 w-4 shrink-0 text-muted-foreground/40" />
+                <ChevronRight className="self-center h-4 w-4 shrink-0 text-muted-foreground/40" />
               )}
             </div>
           );
