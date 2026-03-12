@@ -43,16 +43,20 @@ export function BacktestPanel() {
     setLoading("backtest", true);
     setError(null);
     try {
-      const isML = strategyName.startsWith("ML:");
+      const isML = strategyName.startsWith("ML:") || strategyName.startsWith("Walk-Forward:");
+      const isWF = strategyName.startsWith("Walk-Forward:");
       const res = await api.backtest({
         ticker, period,
         strategy_name: strategyName,
         params: isML ? {} : strategyParams as Record<string, number>,
         model_type: isML ? (strategyParams as any).model_type : undefined,
         features: isML ? (strategyParams as any).features : undefined,
-        train_ratio: isML ? (strategyParams as any).train_ratio : undefined,
+        train_ratio: isML && !isWF ? (strategyParams as any).train_ratio : undefined,
         threshold: isML ? (strategyParams as any).threshold : undefined,
         target_shift: isML ? (strategyParams as any).target_shift : undefined,
+        is_walk_forward: isWF || undefined,
+        train_window: isWF ? (strategyParams as any).train_window : undefined,
+        wf_step: isWF ? (strategyParams as any).wf_step : undefined,
         initial_capital: capital,
         position_size: sizing,
         position_pct: pct,

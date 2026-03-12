@@ -15,12 +15,31 @@ const tooltipStyle = {
   labelStyle: { color: "#a1a1aa" },
 };
 
+const INDICATOR_SUBTITLES: Record<string, string> = {
+  "MACD": "Trend momentum · histogram + signal crossover",
+  "RSI": "Momentum oscillator · overbought >70 / oversold <30",
+  "MFI": "Volume-weighted momentum · overbought >80 / oversold <20",
+  "Bollinger Bands": "Volatility bands · upper / middle (SMA) / lower",
+};
+
 export function IndicatorPanel({ name, data }: Props) {
-  if (name === "MACD") return <MACDChart data={data} />;
-  if (name === "RSI") return <BandChart data={data} cols={["RSI"]} upper={70} lower={30} label="RSI" />;
-  if (name === "MFI") return <BandChart data={data} cols={["MFI"]} upper={80} lower={20} label="MFI" />;
-  if (name === "Bollinger Bands") return <MultiLineChart data={data} cols={["BB_Upper", "BB_Middle", "BB_Lower"]} label="Bollinger Bands" />;
-  return null;
+  const chart = (() => {
+    if (name === "MACD") return <MACDChart data={data} />;
+    if (name === "RSI") return <BandChart data={data} cols={["RSI"]} upper={70} lower={30} label="RSI" />;
+    if (name === "MFI") return <BandChart data={data} cols={["MFI"]} upper={80} lower={20} label="MFI" />;
+    if (name === "Bollinger Bands") return <MultiLineChart data={data} cols={["BB_Upper", "BB_Middle", "BB_Lower"]} label="Bollinger Bands" />;
+    return null;
+  })();
+  if (!chart) return null;
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-foreground">{name}</p>
+        <span className="text-[10px] text-muted-foreground">{INDICATOR_SUBTITLES[name]}</span>
+      </div>
+      {chart}
+    </div>
+  );
 }
 
 function MACDChart({ data }: { data: Record<string, IndicatorPoint[]> }) {

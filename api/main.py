@@ -109,6 +109,9 @@ class BacktestRequest(_StrategyBase):
     spread: float = 0.0
     kelly_fraction: float = 0.5
     benchmark: str = "^GSPC"
+    is_walk_forward: bool = False
+    train_window: int = 252
+    wf_step: int = 63
 
     @field_validator("initial_capital")
     @classmethod
@@ -388,7 +391,20 @@ async def backtest(req: BacktestRequest):
     df, df_ind = _fetch_and_prepare(req.ticker, req.period)
 
     try:
-        signals, _ = _generate_signals(df_ind, req)
+        if req.is_walk_forward and req.model_type:
+            from utils.strategies import walk_forward_ml_strategy
+            wf_result = walk_forward_ml_strategy(
+                df_ind,
+                features=req.features or ["RSI", "MACD_HIST", "MFI", "BB_Percent"],
+                model_type=req.model_type,
+                train_window=req.train_window,
+                step=req.wf_step,
+                threshold=req.threshold or 0.55,
+                target_shift=req.target_shift or 1,
+            )
+            signals = wf_result["signals"]
+        else:
+            signals, _ = _generate_signals(df_ind, req)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

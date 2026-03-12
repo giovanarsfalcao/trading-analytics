@@ -110,6 +110,11 @@ export function CandlestickChart({ data, height = 450 }: Props) {
   }, [data, height]);
 
   return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-foreground">Price</p>
+        <span className="text-[10px] text-muted-foreground">OHLCV · hover for details</span>
+      </div>
     <div style={{ position: "relative" }}>
       <div ref={ref} className="w-full" />
       <div
@@ -128,6 +133,7 @@ export function CandlestickChart({ data, height = 450 }: Props) {
           backdropFilter: "blur(4px)",
         }}
       />
+    </div>
     </div>
   );
 }

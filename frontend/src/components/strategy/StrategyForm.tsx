@@ -159,7 +159,7 @@ export function StrategyForm() {
         }) as any;
         setStrategyData({
           strategyName: res.strategy_name,
-          strategyParams: { model_type: modelType, features, threshold, target_shift: targetShift },
+          strategyParams: { model_type: modelType, features, threshold, target_shift: targetShift, train_window: trainWindow, wf_step: wfStep, is_walk_forward: true },
           signals: res.signals,
           wfBaseSignals: res.base_signals || [],
           signalSummary: res.signal_summary,

@@ -12,6 +12,7 @@ import { StrategyForm } from "@/components/strategy/StrategyForm";
 import { SignalChart } from "@/components/strategy/SignalChart";
 import { FeatureImportance } from "@/components/strategy/FeatureImportance";
 import { WalkForwardComparisonChart } from "@/components/strategy/WalkForwardComparisonChart";
+import { WalkForwardTimeline } from "@/components/strategy/WalkForwardTimeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BacktestPanel } from "@/components/backtest/BacktestPanel";
 import { RiskPanel } from "@/components/risk/RiskPanel";
@@ -217,12 +218,16 @@ function StrategyStage() {
                       <CardHeader className="pb-3">
                         <CardTitle className="text-sm">Walk-Forward vs Base ML</CardTitle>
                       </CardHeader>
-                      <CardContent>
+                      <CardContent className="space-y-6">
                         <WalkForwardComparisonChart
                           wfSignals={signals}
                           baseSignals={wfBaseSignals}
                           ohlcv={ohlcv}
                           folds={ml.fold_results as any[]}
+                        />
+                        <WalkForwardTimeline
+                          folds={ml.fold_results as any[]}
+                          nFolds={ml.n_folds as number}
                         />
                       </CardContent>
                     </Card>
@@ -232,7 +237,7 @@ function StrategyStage() {
             </>
           )}
 
-          <SignalChart signals={signals} />
+          {!ml?.fold_results && <SignalChart signals={signals} />}
         </>
       )}
     </div>
