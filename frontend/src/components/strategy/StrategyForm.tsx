@@ -74,6 +74,7 @@ export function StrategyForm() {
   const [targetShift, setTargetShift] = useState(1);
   // Walk-forward state
   const [walkForward, setWalkForward] = useState(false);
+  const [showParamSweep, setShowParamSweep] = useState(false);
   const [trainWindow, setTrainWindow] = useState(252);
   const [wfStep, setWfStep] = useState(63);
 
@@ -123,7 +124,6 @@ export function StrategyForm() {
   function handleUseBest(paramKey: string, value: number) {
     setParams((prev) => ({ ...prev, [paramKey]: value }));
     clearStrategyData();
-    setActiveTab("rule");
   }
 
   async function runRuleBased() {
@@ -213,7 +213,6 @@ export function StrategyForm() {
       <TabsList>
         <TabsTrigger value="rule">Rule-Based</TabsTrigger>
         <TabsTrigger value="ml">Machine Learning</TabsTrigger>
-        <TabsTrigger value="sweep">Parameter Sweep</TabsTrigger>
       </TabsList>
 
       <TabsContent value="rule" className="space-y-4">
@@ -242,6 +241,26 @@ export function StrategyForm() {
               </div>
             ))}
             <Button onClick={runRuleBased} className="w-full">Generate Signals</Button>
+
+            {/* Parameter Sweep toggle */}
+            <div className={`rounded-lg border p-4 space-y-1 transition-colors ${showParamSweep ? "border-primary/40 bg-primary/5" : "border-border"}`}>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-foreground">Parameter Sweep</p>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <span className="text-[10px] text-muted-foreground">{showParamSweep ? "ON" : "OFF"}</span>
+                  <input
+                    type="checkbox"
+                    checked={showParamSweep}
+                    onChange={(e) => setShowParamSweep(e.target.checked)}
+                    className="rounded"
+                  />
+                </label>
+              </div>
+              <p className="text-[10px] text-muted-foreground/70 leading-relaxed">
+                Tests a parameter across a range of values to find the best risk-adjusted result (Sharpe). Apply the best value directly to the strategy above.
+              </p>
+            </div>
+            {showParamSweep && <ParamSweepPanel onUseBest={handleUseBest} />}
           </CardContent>
         </Card>
       </TabsContent>
@@ -392,9 +411,6 @@ export function StrategyForm() {
         </Card>
       </TabsContent>
 
-      <TabsContent value="sweep" className="space-y-4">
-        <ParamSweepPanel onUseBest={handleUseBest} />
-      </TabsContent>
     </Tabs>
   );
 }
