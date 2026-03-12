@@ -29,6 +29,7 @@ interface TradingState {
   strategyName: string | null;
   strategyParams: Record<string, unknown>;
   signals: SignalPoint[];
+  wfBaseSignals: SignalPoint[];
   signalSummary: { buy_count: number; sell_count: number; hold_count: number; total: number } | null;
   mlMetrics: Record<string, unknown> | null;
 
@@ -73,6 +74,7 @@ interface TradingState {
     strategyName: string;
     strategyParams: Record<string, unknown>;
     signals: SignalPoint[];
+    wfBaseSignals?: SignalPoint[];
     signalSummary: { buy_count: number; sell_count: number; hold_count: number; total: number };
     mlMetrics?: Record<string, unknown> | null;
   }) => void;
@@ -109,6 +111,7 @@ const BLANK: Omit<TradingState, "loading" | "error" | keyof Pick<TradingState,
   strategyName: null,
   strategyParams: {},
   signals: [],
+  wfBaseSignals: [],
   signalSummary: null,
   mlMetrics: null,
   initialCapital: 10000,
@@ -141,7 +144,7 @@ export const useStore = create<TradingState>()(
 
       clearDownstream: (fromStage) => set((s) => {
         s.completedStages = s.completedStages.filter((n) => n < fromStage);
-        if (fromStage <= 2) { s.strategyName = null; s.signals = []; s.signalSummary = null; s.mlMetrics = null; }
+        if (fromStage <= 2) { s.strategyName = null; s.signals = []; s.wfBaseSignals = []; s.signalSummary = null; s.mlMetrics = null; }
         if (fromStage <= 3) { s.portfolio = []; s.trades = []; s.tradeStats = null; s.dailyReturns = []; s.benchmarkPortfolio = []; }
         if (fromStage <= 4) { s.riskMetrics = null; s.monteCarloResult = null; }
       }),
@@ -158,6 +161,7 @@ export const useStore = create<TradingState>()(
       clearStrategyData: () => set((s) => {
         s.strategyName = null;
         s.signals = [];
+        s.wfBaseSignals = [];
         s.signalSummary = null;
         s.mlMetrics = null;
       }),
@@ -171,7 +175,7 @@ export const useStore = create<TradingState>()(
         s.fundamentals = data.fundamentals;
         if (tickerChanged) {
           s.completedStages = [];
-          s.strategyName = null; s.signals = []; s.signalSummary = null; s.mlMetrics = null;
+          s.strategyName = null; s.signals = []; s.wfBaseSignals = []; s.signalSummary = null; s.mlMetrics = null;
           s.portfolio = []; s.trades = []; s.tradeStats = null; s.dailyReturns = []; s.benchmarkPortfolio = [];
           s.riskMetrics = null; s.monteCarloResult = null;
         }
@@ -182,6 +186,7 @@ export const useStore = create<TradingState>()(
         s.strategyName = data.strategyName;
         s.strategyParams = data.strategyParams;
         s.signals = data.signals;
+        s.wfBaseSignals = data.wfBaseSignals || [];
         s.signalSummary = data.signalSummary;
         s.mlMetrics = data.mlMetrics || null;
         s.completedStages = s.completedStages.filter((n) => n < 2);
@@ -233,6 +238,7 @@ export const useStore = create<TradingState>()(
         strategyName: state.strategyName,
         strategyParams: state.strategyParams,
         signals: state.signals,
+        wfBaseSignals: state.wfBaseSignals,
         signalSummary: state.signalSummary,
         mlMetrics: state.mlMetrics,
         initialCapital: state.initialCapital,

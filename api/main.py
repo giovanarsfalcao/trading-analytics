@@ -516,7 +516,7 @@ async def monte_carlo(req: MonteCarloRequest):
 
 @app.post("/api/walk-forward")
 async def walk_forward(req: WalkForwardRequest):
-    from utils.strategies import walk_forward_ml_strategy
+    from utils.strategies import walk_forward_ml_strategy, ml_strategy
 
     df, df_ind = _fetch_and_prepare(req.ticker, req.period)
 
@@ -533,10 +533,26 @@ async def walk_forward(req: WalkForwardRequest):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+    # Base model: single train/test split (80/20) for comparison with WFA
+    base_signals_serialized = []
+    try:
+        base_result = ml_strategy(
+            df_ind,
+            features=req.features,
+            model_type=req.model_type,
+            train_ratio=0.8,
+            threshold=req.threshold,
+            target_shift=req.target_shift,
+        )
+        base_signals_serialized = _serialize_signals(base_result["signals"], df["Close"])
+    except Exception:
+        pass
+
     signals = result["signals"]
     serialized = _serialize_signals(signals, df["Close"])
     return {
         "signals": serialized,
+        "base_signals": base_signals_serialized,
         "signal_summary": _signal_summary(signals),
         "fold_results": result["fold_results"],
         "n_folds": result["n_folds"],

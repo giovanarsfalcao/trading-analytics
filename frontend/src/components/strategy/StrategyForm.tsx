@@ -13,7 +13,7 @@ import { ParamSweepPanel } from "./ParamSweepPanel";
 
 const ML_MODELS = ["Random Forest", "Gradient Boosting", "Logistic Regression"];
 const DEFAULT_FEATURES = ["RSI", "MACD_HIST", "MFI", "BB_Percent"];
-const EXCLUDED_FEATURES = ["Open", "High", "Low", "Close", "Volume", "ATR", "VWAP", "STOCH_K", "STOCH_D"];
+const EXCLUDED_FEATURES = ["Open", "High", "Low", "Close", "Volume", "ATR", "VWAP", "STOCH_K", "STOCH_D", "BB_Bandwidth"];
 
 const FUNDAMENTAL_FEATURES: { key: string; label: string }[] = [
   { key: "pe", label: "P/E" },
@@ -161,6 +161,7 @@ export function StrategyForm() {
           strategyName: res.strategy_name,
           strategyParams: { model_type: modelType, features, threshold, target_shift: targetShift },
           signals: res.signals,
+          wfBaseSignals: res.base_signals || [],
           signalSummary: res.signal_summary,
           mlMetrics: { n_folds: res.n_folds, fold_results: res.fold_results },
         });

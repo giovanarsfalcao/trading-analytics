@@ -7,10 +7,11 @@ import { TickerSearch } from "@/components/explore/TickerSearch";
 import { CandlestickChart } from "@/components/explore/CandlestickChart";
 import { IndicatorPanel } from "@/components/explore/IndicatorPanel";
 import { FundamentalsGrid } from "@/components/explore/FundamentalsGrid";
+import { MarketStatsPanel } from "@/components/explore/MarketStatsPanel";
 import { StrategyForm } from "@/components/strategy/StrategyForm";
 import { SignalChart } from "@/components/strategy/SignalChart";
 import { FeatureImportance } from "@/components/strategy/FeatureImportance";
-import { WalkForwardTimeline } from "@/components/strategy/WalkForwardTimeline";
+import { WalkForwardComparisonChart } from "@/components/strategy/WalkForwardComparisonChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BacktestPanel } from "@/components/backtest/BacktestPanel";
 import { RiskPanel } from "@/components/risk/RiskPanel";
@@ -107,6 +108,7 @@ function ExploreStage() {
         <TabsList>
           <TabsTrigger value="price">Price</TabsTrigger>
           <TabsTrigger value="indicators">Technical Indicators</TabsTrigger>
+          <TabsTrigger value="market-stats">Market Stats</TabsTrigger>
           {fundamentals && <TabsTrigger value="fundamentals">Fundamentals</TabsTrigger>}
         </TabsList>
         <TabsContent value="price">
@@ -131,6 +133,9 @@ function ExploreStage() {
             );
           })}
         </TabsContent>
+        <TabsContent value="market-stats">
+          <MarketStatsPanel ohlcv={ohlcv} indicators={indicators} />
+        </TabsContent>
         {fundamentals && (
           <TabsContent value="fundamentals">
             <FundamentalsGrid data={fundamentals} />
@@ -142,7 +147,7 @@ function ExploreStage() {
 }
 
 function StrategyStage() {
-  const { signals, signalSummary, mlMetrics } = useStore();
+  const { signals, wfBaseSignals, signalSummary, mlMetrics, ohlcv } = useStore();
   const ml = mlMetrics as Record<string, unknown> | null;
 
   return (
@@ -160,11 +165,11 @@ function StrategyStage() {
           {ml && (
             <>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                <KPICard label="Accuracy" value={fmt(ml.accuracy as number, { pct: true })} />
-                <KPICard label="Precision" value={fmt(ml.precision as number, { pct: true })} />
-                <KPICard label="Recall" value={fmt(ml.recall as number, { pct: true })} />
-                <KPICard label="F1 Score" value={fmt(ml.f1 as number, { pct: true })} />
-                {ml.roc_auc != null && <KPICard label="ROC AUC" value={fmt(ml.roc_auc as number, { pct: true })} />}
+                <KPICard label="Accuracy" value={fmt(ml.accuracy as number, { pct: true })} description="How often was the model correct overall?" />
+                <KPICard label="Precision" value={fmt(ml.precision as number, { pct: true })} description="Of all buy signals, how many were right?" />
+                <KPICard label="Recall" value={fmt(ml.recall as number, { pct: true })} description="Of all actual buy opportunities, how many were caught?" />
+                <KPICard label="F1 Score" value={fmt(ml.f1 as number, { pct: true })} description="Balance between precision and recall" />
+                {ml.roc_auc != null && <KPICard label="ROC AUC" value={fmt(ml.roc_auc as number, { pct: true })} description="How well does the model separate Long vs Short? (1.0 = perfect)" />}
               </div>
 
               {ml.confusion_matrix && (
@@ -203,19 +208,21 @@ function StrategyStage() {
                   <>
                     {avgAcc != null && (
                       <div className="grid grid-cols-3 gap-3">
-                        <KPICard label="Avg Accuracy (OOS)" value={fmt(avgAcc, { pct: true })} />
-                        {avgF1 != null && <KPICard label="Avg F1 (OOS)" value={fmt(avgF1, { pct: true })} />}
-                        {avgAuc != null && <KPICard label="Avg ROC AUC (OOS)" value={fmt(avgAuc, { pct: true })} />}
+                        <KPICard label="Avg Accuracy (OOS)" value={fmt(avgAcc, { pct: true })} description="Average out-of-sample accuracy across all folds" />
+                        {avgF1 != null && <KPICard label="Avg F1 (OOS)" value={fmt(avgF1, { pct: true })} description="Average F1 score across all folds" />}
+                        {avgAuc != null && <KPICard label="Avg ROC AUC (OOS)" value={fmt(avgAuc, { pct: true })} description="Average ability to separate Long vs Short, out-of-sample" />}
                       </div>
                     )}
                     <Card>
                       <CardHeader className="pb-3">
-                        <CardTitle className="text-sm">Walk-Forward Fold Timeline</CardTitle>
+                        <CardTitle className="text-sm">Walk-Forward vs Base ML</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <WalkForwardTimeline
+                        <WalkForwardComparisonChart
+                          wfSignals={signals}
+                          baseSignals={wfBaseSignals}
+                          ohlcv={ohlcv}
                           folds={ml.fold_results as any[]}
-                          nFolds={ml.n_folds as number}
                         />
                       </CardContent>
                     </Card>
