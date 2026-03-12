@@ -48,13 +48,17 @@ export function MonteCarloChart({ result, initialCapital }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <button
-          onClick={() => downloadChartAsPng(containerRef, "monte-carlo.png")}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded border border-border hover:bg-muted"
-        >
-          Save PNG
-        </button>
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-foreground">Monte Carlo Simulation</p>
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] text-muted-foreground">Portfolio paths · median, 5th and 95th percentiles</span>
+          <button
+            onClick={() => downloadChartAsPng(containerRef, "monte-carlo.png")}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded border border-border hover:bg-muted"
+          >
+            Save PNG
+          </button>
+        </div>
       </div>
       <div ref={containerRef}>
         <ResponsiveContainer width="100%" height={350}>

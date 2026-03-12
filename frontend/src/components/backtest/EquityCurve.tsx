@@ -41,14 +41,18 @@ export function EquityCurve({ portfolio, benchmark }: Props) {
   }));
 
   return (
-    <div className="space-y-1">
-      <div className="flex justify-end">
-        <button
-          onClick={() => downloadChartAsPng(containerRef, "equity-curve.png")}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded border border-border hover:bg-muted"
-        >
-          Save PNG
-        </button>
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-foreground">Equity Curve</p>
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] text-muted-foreground">Strategy vs. Buy &amp; Hold benchmark</span>
+          <button
+            onClick={() => downloadChartAsPng(containerRef, "equity-curve.png")}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded border border-border hover:bg-muted"
+          >
+            Save PNG
+          </button>
+        </div>
       </div>
       <div ref={containerRef}>
         <ResponsiveContainer width="100%" height={350}>

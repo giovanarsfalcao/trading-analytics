@@ -14,6 +14,11 @@ export function FeatureImportance({ importance }: Props) {
     .map(([name, value]) => ({ name, value: Math.round(value * 1000) / 1000 }));
 
   return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-foreground">Feature Importance</p>
+        <span className="text-[10px] text-muted-foreground">Relative contribution of each input feature</span>
+      </div>
     <ResponsiveContainer width="100%" height={Math.max(160, data.length * 32)}>
       <BarChart data={data} layout="vertical" margin={{ left: 16, right: 24, top: 4, bottom: 4 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
@@ -29,5 +34,6 @@ export function FeatureImportance({ importance }: Props) {
         </Bar>
       </BarChart>
     </ResponsiveContainer>
+    </div>
   );
 }

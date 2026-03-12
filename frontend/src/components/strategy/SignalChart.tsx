@@ -19,6 +19,11 @@ export function SignalChart({ signals }: Props) {
   }));
 
   return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-foreground">Buy / Sell Signals</p>
+        <span className="text-[10px] text-muted-foreground">Price with entry and exit markers</span>
+      </div>
     <ResponsiveContainer width="100%" height={350}>
       <ComposedChart data={data}>
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
@@ -60,5 +65,6 @@ export function SignalChart({ signals }: Props) {
         />
       </ComposedChart>
     </ResponsiveContainer>
+    </div>
   );
 }

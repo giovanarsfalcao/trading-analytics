@@ -43,6 +43,10 @@ export function WalkForwardTimeline({ folds, nFolds }: Props) {
 
   return (
     <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-foreground">Fold Timeline</p>
+        <span className="text-[10px] text-muted-foreground">Training (IS) and test (OOS) windows per fold</span>
+      </div>
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>{fmtDate(folds[0].train_start)}</span>
         <div className="flex items-center gap-4">
@@ -56,6 +60,7 @@ export function WalkForwardTimeline({ folds, nFolds }: Props) {
         </div>
         <span>{fmtDate(folds[folds.length - 1].test_end)}</span>
       </div>
+
 
       <div className="space-y-1.5">
         {folds.map((fold) => {

@@ -16,6 +16,11 @@ export function DrawdownChart({ portfolio }: Props) {
   });
 
   return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-foreground">Drawdown</p>
+        <span className="text-[10px] text-muted-foreground">Peak-to-trough decline from all-time high</span>
+      </div>
     <ResponsiveContainer width="100%" height={180}>
       <AreaChart data={data}>
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
@@ -30,5 +35,6 @@ export function DrawdownChart({ portfolio }: Props) {
         <Area type="monotone" dataKey="drawdown" stroke="#ef4444" fill="rgba(239,68,68,0.15)" strokeWidth={1.5} />
       </AreaChart>
     </ResponsiveContainer>
+    </div>
   );
 }
