@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from ta.trend import SMAIndicator, EMAIndicator, MACD
 from ta.momentum import RSIIndicator, StochRSIIndicator, StochasticOscillator
@@ -65,6 +66,16 @@ def add_vwap(df: pd.DataFrame, period: int = 14) -> pd.DataFrame:
     return df
 
 
+def add_market_stats(df: pd.DataFrame, volume_window: int = 20, hv_window: int = 20) -> pd.DataFrame:
+    """Volume Ratio and 20-day annualized Historical Volatility."""
+    vol_ma = df["Volume"].rolling(volume_window).mean()
+    df["Volume_Ratio"] = df["Volume"] / vol_ma
+
+    log_returns = np.log(df["Close"] / df["Close"].shift(1))
+    df["HV_20"] = log_returns.rolling(hv_window).std() * np.sqrt(252)
+    return df
+
+
 def calculate_all_indicators(
     df: pd.DataFrame,
     rsi_period: int = 14,
@@ -91,4 +102,5 @@ def calculate_all_indicators(
     result = add_stochastic(result)
     result = add_mfi(result)
     result = add_vwap(result)
+    result = add_market_stats(result)
     return result
