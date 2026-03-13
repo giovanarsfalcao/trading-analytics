@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import (
     accuracy_score, precision_score, recall_score,
     f1_score, roc_auc_score, confusion_matrix,
@@ -172,8 +173,11 @@ def walk_forward_ml_strategy(
         )
 
         try:
-            model.fit(X_train, y_train)
-            proba = model.predict_proba(X_test)[:, 1]
+            scaler = StandardScaler()
+            X_train_s = scaler.fit_transform(X_train)
+            X_test_s = scaler.transform(X_test)
+            model.fit(X_train_s, y_train)
+            proba = model.predict_proba(X_test_s)[:, 1]
             fold_sigs = np.where(proba > threshold, 1, np.where(proba < (1 - threshold), -1, 0))
             signals.loc[X_test.index] = fold_sigs
 
@@ -266,14 +270,17 @@ def ml_strategy(
     else:
         model = ModelClass(n_estimators=100, random_state=42)
 
-    model.fit(X_train, y_train)
+    scaler = StandardScaler()
+    X_train_s = scaler.fit_transform(X_train)
+    X_test_s = scaler.transform(X_test)
+    model.fit(X_train_s, y_train)
 
     # Out-of-sample predictions (test set) — used for reported metrics
-    test_proba = model.predict_proba(X_test)[:, 1]
+    test_proba = model.predict_proba(X_test_s)[:, 1]
     predictions = (test_proba > threshold).astype(int)
 
     # In-sample predictions (train set) — overfit by definition, shown with warning in UI
-    train_proba = model.predict_proba(X_train)[:, 1]
+    train_proba = model.predict_proba(X_train_s)[:, 1]
 
     # Build full signal series covering both train and test periods
     signals = pd.Series(0, index=data.index, dtype=int)
