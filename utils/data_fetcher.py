@@ -41,6 +41,12 @@ def fetch_price_data(ticker: str, period: str = "2y", interval: str = "1d") -> p
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.get_level_values(0)
 
+    # Remove timezone info and deduplicate/sort index (can occur with DST transitions in intraday data)
+    if hasattr(df.index, "tz") and df.index.tz is not None:
+        df.index = df.index.tz_localize(None)
+    df = df.sort_index()
+    df = df[~df.index.duplicated(keep="first")]
+
     _price_cache[key] = (df, time.time())
     return df
 

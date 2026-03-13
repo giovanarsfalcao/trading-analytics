@@ -20,6 +20,15 @@ function fmtVolume(v: number) {
   return v.toString();
 }
 
+// Returns a lightweight-charts compatible time value.
+// Daily data: "YYYY-MM-DD" string. Intraday data: Unix timestamp in seconds.
+function toChartTime(dateStr: string): string | number {
+  if (dateStr.length > 10 && dateStr.includes("T")) {
+    return Math.floor(new Date(dateStr).getTime() / 1000);
+  }
+  return dateStr.slice(0, 10);
+}
+
 export function CandlestickChart({ data, height = 450 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -27,6 +36,8 @@ export function CandlestickChart({ data, height = 450 }: Props) {
 
   useEffect(() => {
     if (!ref.current || data.length === 0) return;
+
+    const isIntraday = data.length > 0 && data[0].date.length > 10 && data[0].date.includes("T");
 
     const chart = createChart(ref.current, {
       height,
@@ -49,8 +60,9 @@ export function CandlestickChart({ data, height = 450 }: Props) {
       wickDownColor: "#ef4444",
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     candles.setData(data.map((d) => ({
-      time: d.date.split("T")[0] as string & { __brand: "date" },
+      time: toChartTime(d.date) as any,
       open: d.open, high: d.high, low: d.low, close: d.close,
     })));
 
@@ -59,8 +71,9 @@ export function CandlestickChart({ data, height = 450 }: Props) {
       priceFormat: { type: "volume" },
     });
     chart.priceScale("vol").applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     volume.setData(data.map((d) => ({
-      time: d.date.split("T")[0] as string & { __brand: "date" },
+      time: toChartTime(d.date) as any,
       value: d.volume,
       color: d.close >= d.open ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)",
     })));
@@ -68,9 +81,9 @@ export function CandlestickChart({ data, height = 450 }: Props) {
     chart.timeScale().fitContent();
     chartRef.current = chart;
 
-    // Build a date → OHLCVRow lookup for tooltip data
-    const byDate: Record<string, OHLCVRow> = {};
-    for (const d of data) byDate[d.date.split("T")[0]] = d;
+    // Build a chartTime → OHLCVRow lookup for tooltip
+    const byTime: Record<string | number, OHLCVRow> = {};
+    for (const d of data) byTime[toChartTime(d.date)] = d;
 
     chart.subscribeCrosshairMove((param) => {
       const tooltip = tooltipRef.current;
@@ -81,8 +94,10 @@ export function CandlestickChart({ data, height = 450 }: Props) {
         return;
       }
 
-      const dateStr = param.time as string;
-      const row = byDate[dateStr];
+      const row = byTime[param.time as string | number];
+      const dateStr = isIntraday
+        ? new Date((param.time as number) * 1000).toISOString().replace("T", " ").slice(0, 16)
+        : param.time as string;
       if (!row) { tooltip.style.display = "none"; return; }
 
       const isUp = row.close >= row.open;
