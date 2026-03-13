@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { ResponsiveContainer, AreaChart, Area, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from "recharts";
+import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, Cell } from "recharts";
 import { KPICard, fmt } from "@/components/shared/KPICard";
 import type { MonteCarloResult } from "@/types";
 
@@ -32,6 +32,20 @@ function downloadChartAsPng(containerRef: React.RefObject<HTMLDivElement | null>
   img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgData);
 }
 
+function computeHistogramBins(values: number[], nBins: number): Array<{ bin: number; count: number }> {
+  if (!values || values.length === 0) return [];
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  if (min === max) return [];
+  const width = (max - min) / nBins;
+  const counts = new Array(nBins).fill(0);
+  for (const v of values) {
+    const idx = Math.min(Math.floor((v - min) / width), nBins - 1);
+    counts[idx]++;
+  }
+  return counts.map((count, i) => ({ bin: min + (i + 0.5) * width, count }));
+}
+
 export function MonteCarloChart({ result, initialCapital }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -45,6 +59,9 @@ export function MonteCarloChart({ result, initialCapital }: Props) {
     p05: p05[i],
     p95: p95[i],
   }));
+
+  const pnlBins = computeHistogramBins(result.final_values_histogram, 25);
+  const ddBins = result.max_drawdown_distribution ?? [];
 
   return (
     <div className="space-y-4">
@@ -79,6 +96,7 @@ export function MonteCarloChart({ result, initialCapital }: Props) {
           </AreaChart>
         </ResponsiveContainer>
       </div>
+
       <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
         <KPICard label="P(Loss)" value={fmt(result.probability_of_loss, { pct: true })} deltaType={result.probability_of_loss > 0.5 ? "negative" : "positive"} />
         <KPICard label="Expected" value={`$${result.expected_value.toFixed(0)}`} />
@@ -87,6 +105,57 @@ export function MonteCarloChart({ result, initialCapital }: Props) {
         <KPICard label="Worst Case (5th)" value={`$${result.worst_case.toFixed(0)}`} />
         <KPICard label="Initial" value={`$${initialCapital.toFixed(0)}`} />
       </div>
+
+      {pnlBins.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-foreground">Final PnL Distribution</p>
+            <span className="text-[10px] text-muted-foreground">Frequency of simulated ending portfolio values</span>
+          </div>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={pnlBins} margin={{ left: 8, right: 8, top: 4, bottom: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+              <XAxis dataKey="bin" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 10, fill: "#71717a" }} />
+              <YAxis tick={{ fontSize: 10, fill: "#71717a" }} />
+              <Tooltip
+                contentStyle={{ backgroundColor: "#1c1c2e", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }}
+                formatter={(v, _name, props) => [v, "Simulations"]}
+                labelFormatter={(v) => `~$${Number(v).toFixed(0)}`}
+                labelStyle={{ color: "#a1a1aa" }}
+              />
+              <ReferenceLine x={initialCapital} stroke="#ef4444" strokeDasharray="4 4" opacity={0.6} />
+              <Bar dataKey="count" radius={[2, 2, 0, 0]}>
+                {pnlBins.map((entry, i) => (
+                  <Cell key={i} fill={entry.bin >= initialCapital ? "rgba(34,197,94,0.7)" : "rgba(239,68,68,0.7)"} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {ddBins.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-foreground">Max Drawdown Distribution</p>
+            <span className="text-[10px] text-muted-foreground">Worst peak-to-trough decline across simulations</span>
+          </div>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={ddBins} margin={{ left: 8, right: 8, top: 4, bottom: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+              <XAxis dataKey="bin" tickFormatter={(v) => `${Number(v).toFixed(0)}%`} tick={{ fontSize: 10, fill: "#71717a" }} />
+              <YAxis tick={{ fontSize: 10, fill: "#71717a" }} />
+              <Tooltip
+                contentStyle={{ backgroundColor: "#1c1c2e", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }}
+                formatter={(v) => [v, "Simulations"]}
+                labelFormatter={(v) => `~${Number(v).toFixed(1)}%`}
+                labelStyle={{ color: "#a1a1aa" }}
+              />
+              <Bar dataKey="count" fill="rgba(239,68,68,0.65)" radius={[2, 2, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </div>
   );
 }

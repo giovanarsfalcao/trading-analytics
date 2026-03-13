@@ -14,6 +14,7 @@ import { ParamSweepPanel } from "./ParamSweepPanel";
 const ML_MODELS = ["Random Forest", "Gradient Boosting", "Logistic Regression"];
 const DEFAULT_FEATURES = ["RSI", "MACD_HIST", "MFI", "BB_Percent"];
 const EXCLUDED_FEATURES = ["Open", "High", "Low", "Close", "Volume", "ATR", "VWAP", "STOCH_K", "STOCH_D", "BB_Bandwidth"];
+const MARKET_STATS_FEATURES = ["Volume_Ratio", "HV_20"];
 
 const FUNDAMENTAL_FEATURES: { key: string; label: string }[] = [
   { key: "pe", label: "P/E" },
@@ -187,7 +188,11 @@ export function StrategyForm() {
   }
 
   const availableFeatures = Object.keys(indicators).filter(
-    (k) => !EXCLUDED_FEATURES.includes(k)
+    (k) => !EXCLUDED_FEATURES.includes(k) && !MARKET_STATS_FEATURES.includes(k)
+  );
+
+  const availableMarketStats = MARKET_STATS_FEATURES.filter(
+    (k) => Object.keys(indicators).includes(k)
   );
 
   const availableFundamentals = FUNDAMENTAL_FEATURES.filter(
@@ -380,6 +385,28 @@ export function StrategyForm() {
                   ))}
                 </div>
               </div>
+
+              {availableMarketStats.length > 0 && (
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">Market Stats</p>
+                    <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+                      Volume and volatility context features derived from market microstructure.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {availableMarketStats.map((f) => (
+                      <Button
+                        key={f} size="sm" variant={features.includes(f) ? "default" : "outline"}
+                        className="text-xs h-6 px-2"
+                        onClick={() => toggleFeature(f)}
+                      >
+                        {f}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {availableFundamentals.length > 0 && (
                 <div className="space-y-2">
