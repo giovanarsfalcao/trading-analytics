@@ -527,6 +527,7 @@ async def monte_carlo(req: MonteCarloRequest):
         "best_case": mc["best_case"],
         "worst_case": mc["worst_case"],
         "final_values_histogram": [float(v) for v in final_vals],
+        "max_drawdown_distribution": mc["max_drawdown_distribution"],
     }
 
 

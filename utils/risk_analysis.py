@@ -161,6 +161,16 @@ def monte_carlo_simulation(
     for level in confidence_levels:
         percentiles[level] = np.percentile(paths, level * 100, axis=1)
 
+    # Per-simulation max drawdown distribution
+    rolling_max = np.maximum.accumulate(paths, axis=0)
+    drawdowns = (paths / rolling_max) - 1  # shape: (n_days, n_simulations)
+    sim_max_drawdowns = drawdowns.min(axis=0) * 100  # in %, shape: (n_simulations,)
+    counts, edges = np.histogram(sim_max_drawdowns, bins=20)
+    max_drawdown_distribution = [
+        {"bin": float((edges[i] + edges[i + 1]) / 2), "count": int(counts[i])}
+        for i in range(len(counts))
+    ]
+
     return {
         "simulations": paths,
         "percentiles": percentiles,
@@ -171,4 +181,5 @@ def monte_carlo_simulation(
         "median_path": np.median(paths, axis=1),
         "best_case": float(np.percentile(final_values, 95)),
         "worst_case": float(np.percentile(final_values, 5)),
+        "max_drawdown_distribution": max_drawdown_distribution,
     }

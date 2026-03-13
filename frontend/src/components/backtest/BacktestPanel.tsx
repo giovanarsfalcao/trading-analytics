@@ -14,6 +14,7 @@ import { EquityCurve } from "./EquityCurve";
 import { DrawdownChart } from "./DrawdownChart";
 import { TradeTable } from "./TradeTable";
 import { ComparisonPanel } from "./ComparisonPanel";
+import { AnnualReturnsTable } from "./AnnualReturnsTable";
 
 const BENCHMARKS = [
   { label: "S&P 500", value: "^GSPC" },
@@ -180,6 +181,9 @@ export function BacktestPanel() {
               <h3 className="text-xs font-medium text-muted-foreground mb-2">Drawdown</h3>
               <DrawdownChart portfolio={portfolio} />
             </div>
+            {tradeStats.annual_returns && tradeStats.annual_returns.length > 0 && (
+              <AnnualReturnsTable data={tradeStats.annual_returns} />
+            )}
             {trades.length > 0 && <TradeTable trades={trades} />}
           </TabsContent>
 

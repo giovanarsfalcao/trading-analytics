@@ -75,6 +75,7 @@ export interface TradeStats {
   max_drawdown: number;
   max_drawdown_duration_days: number;
   sharpe_ratio: number;
+  annual_returns?: Array<{ year: number; return: number }>;
 }
 
 export interface RiskMetrics {
@@ -101,6 +102,7 @@ export interface MonteCarloResult {
   best_case: number;
   worst_case: number;
   final_values_histogram: number[];
+  max_drawdown_distribution?: Array<{ bin: number; count: number }>;
 }
 
 export interface ComparisonEntry {
