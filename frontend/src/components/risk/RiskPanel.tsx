@@ -17,7 +17,7 @@ const HORIZONS = [
 ];
 
 export function RiskPanel() {
-  const { dailyReturns, portfolio, benchmarkPortfolio, initialCapital, riskMetrics, monteCarloResult, setRiskData, setMonteCarloData, setLoading, setError } = useStore();
+  const { dailyReturns, portfolio, benchmarkPortfolio, initialCapital, interval, riskMetrics, monteCarloResult, setRiskData, setMonteCarloData, setLoading, setError } = useStore();
   const [nSims, setNSims] = useState(1000);
   const [horizon, setHorizon] = useState(252);
   const [mcMethod, setMcMethod] = useState("gbm");
@@ -36,6 +36,7 @@ export function RiskPanel() {
         portfolio_dates: portfolio.map((p) => p.date),
         benchmark_returns: benchReturns,
         risk_free_rate: riskFreeRate,
+        interval,
       }) as any;
       setRiskData(res);
     } catch (e) {
@@ -55,6 +56,7 @@ export function RiskPanel() {
         n_simulations: nSims,
         n_days: horizon,
         method: mcMethod,
+        interval,
       }) as any;
       setMonteCarloData(res);
     } catch (e) {

@@ -26,7 +26,7 @@ const BENCHMARKS = [
 export function BacktestPanel() {
   const store = useStore();
   const {
-    ticker, period, strategyName, strategyParams,
+    ticker, period, interval, strategyName, strategyParams,
     tradeStats, portfolio, benchmarkPortfolio, trades,
     comparisonResults, setBacktestData, addComparison, setLoading, setError,
   } = store;
@@ -47,7 +47,7 @@ export function BacktestPanel() {
       const isML = strategyName.startsWith("ML:") || strategyName.startsWith("Walk-Forward:");
       const isWF = strategyName.startsWith("Walk-Forward:");
       const res = await api.backtest({
-        ticker, period,
+        ticker, period, interval,
         strategy_name: strategyName,
         params: isML ? {} : strategyParams as Record<string, number>,
         model_type: isML ? (strategyParams as any).model_type : undefined,

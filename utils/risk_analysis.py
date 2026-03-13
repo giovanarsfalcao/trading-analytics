@@ -9,6 +9,18 @@ import numpy as np
 import pandas as pd
 
 
+def bars_per_year(interval: str) -> int:
+    """Return the number of bars per year for a given yfinance interval."""
+    return {
+        "1m":  252 * 390,
+        "5m":  252 * 78,
+        "15m": 252 * 26,
+        "30m": 252 * 13,
+        "1h":  252 * 7,
+        "1d":  252,
+    }.get(interval, 252)
+
+
 # ── Individual Metrics ──────────────────────────────────────────
 
 def sharpe_ratio(returns: pd.Series, risk_free_rate: float = 0.05,
@@ -89,24 +101,26 @@ def calculate_risk_metrics(
     benchmark_returns: pd.Series,
     portfolio_prices: pd.Series,
     risk_free_rate: float = 0.05,
+    interval: str = "1d",
 ) -> dict:
     """Calculate all risk metrics at once."""
+    periods = bars_per_year(interval)
     result = {
-        "sharpe_ratio": sharpe_ratio(portfolio_returns, risk_free_rate),
-        "sortino_ratio": sortino_ratio(portfolio_returns, risk_free_rate),
+        "sharpe_ratio": sharpe_ratio(portfolio_returns, risk_free_rate, periods),
+        "sortino_ratio": sortino_ratio(portfolio_returns, risk_free_rate, periods),
         "max_drawdown": max_drawdown(portfolio_prices),
         "var_95": value_at_risk(portfolio_returns, 0.95),
         "var_99": value_at_risk(portfolio_returns, 0.99),
         "cvar_95": conditional_var(portfolio_returns, 0.95),
-        "calmar_ratio": calmar_ratio(portfolio_returns, portfolio_prices),
-        "annualized_return": float(portfolio_returns.mean() * 252),
-        "annualized_volatility": float(portfolio_returns.std() * np.sqrt(252)),
+        "calmar_ratio": calmar_ratio(portfolio_returns, portfolio_prices, periods),
+        "annualized_return": float(portfolio_returns.mean() * periods),
+        "annualized_volatility": float(portfolio_returns.std() * np.sqrt(periods)),
     }
 
     if not benchmark_returns.empty and len(benchmark_returns) > 1:
         result["beta"] = beta(portfolio_returns, benchmark_returns)
-        result["alpha"] = alpha(portfolio_returns, benchmark_returns, risk_free_rate)
-        result["information_ratio"] = information_ratio(portfolio_returns, benchmark_returns)
+        result["alpha"] = alpha(portfolio_returns, benchmark_returns, risk_free_rate, periods)
+        result["information_ratio"] = information_ratio(portfolio_returns, benchmark_returns, periods)
     else:
         result["beta"] = None
         result["alpha"] = None
@@ -124,6 +138,7 @@ def monte_carlo_simulation(
     n_days: int = 252,
     confidence_levels: list = None,
     method: str = "gbm",
+    interval: str = "1d",
 ) -> dict:
     """
     Monte Carlo simulation.

@@ -4,6 +4,7 @@ from ta.trend import SMAIndicator, EMAIndicator, MACD
 from ta.momentum import RSIIndicator, StochRSIIndicator, StochasticOscillator
 from ta.volatility import BollingerBands, AverageTrueRange
 from ta.volume import MFIIndicator
+from utils.risk_analysis import bars_per_year
 
 
 def add_sma(df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
@@ -66,13 +67,13 @@ def add_vwap(df: pd.DataFrame, period: int = 14) -> pd.DataFrame:
     return df
 
 
-def add_market_stats(df: pd.DataFrame, volume_window: int = 20, hv_window: int = 20) -> pd.DataFrame:
-    """Volume Ratio and 20-day annualized Historical Volatility."""
+def add_market_stats(df: pd.DataFrame, volume_window: int = 20, hv_window: int = 20, interval: str = "1d") -> pd.DataFrame:
+    """Volume Ratio and 20-bar annualized Historical Volatility."""
     vol_ma = df["Volume"].rolling(volume_window).mean()
     df["Volume_Ratio"] = df["Volume"] / vol_ma
 
     log_returns = np.log(df["Close"] / df["Close"].shift(1))
-    df["HV_20"] = log_returns.rolling(hv_window).std() * np.sqrt(252)
+    df["HV_20"] = log_returns.rolling(hv_window).std() * np.sqrt(bars_per_year(interval))
     return df
 
 
@@ -87,6 +88,7 @@ def calculate_all_indicators(
     sma_fast: int = 20,
     sma_medium: int = 50,
     sma_slow: int = 200,
+    interval: str = "1d",
 ) -> pd.DataFrame:
     """Add all standard indicators. Returns a copy with indicator columns."""
     result = df.copy()
@@ -102,5 +104,5 @@ def calculate_all_indicators(
     result = add_stochastic(result)
     result = add_mfi(result)
     result = add_vwap(result)
-    result = add_market_stats(result)
+    result = add_market_stats(result, interval=interval)
     return result

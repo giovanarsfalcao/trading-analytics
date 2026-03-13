@@ -21,6 +21,7 @@ interface TradingState {
   // Stage 1
   ticker: string | null;
   period: string;
+  interval: string;
   ohlcv: OHLCVRow[];
   indicators: Record<string, IndicatorPoint[]>;
   fundamentals: FundamentalsData | null;
@@ -65,6 +66,7 @@ interface TradingState {
   setExploreData: (data: {
     ticker: string;
     period: string;
+    interval: string;
     ohlcv: OHLCVRow[];
     indicators: Record<string, IndicatorPoint[]>;
     fundamentals: FundamentalsData | null;
@@ -105,6 +107,7 @@ const BLANK: Omit<TradingState, "loading" | "error" | keyof Pick<TradingState,
   completedStages: [],
   ticker: null,
   period: "2y",
+  interval: "1d",
   ohlcv: [],
   indicators: {},
   fundamentals: null,
@@ -170,6 +173,7 @@ export const useStore = create<TradingState>()(
         const tickerChanged = s.ticker !== data.ticker;
         s.ticker = data.ticker;
         s.period = data.period;
+        s.interval = data.interval;
         s.ohlcv = data.ohlcv;
         s.indicators = data.indicators;
         s.fundamentals = data.fundamentals;
@@ -232,6 +236,7 @@ export const useStore = create<TradingState>()(
         completedStages: state.completedStages,
         ticker: state.ticker,
         period: state.period,
+        interval: state.interval,
         ohlcv: state.ohlcv,
         indicators: state.indicators,
         fundamentals: state.fundamentals,

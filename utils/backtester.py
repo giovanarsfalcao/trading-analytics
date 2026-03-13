@@ -4,6 +4,7 @@ Backtest engine with trade tracking, position sizing, and transaction cost handl
 
 import pandas as pd
 import numpy as np
+from utils.risk_analysis import bars_per_year
 
 
 def run_backtest(
@@ -17,6 +18,7 @@ def run_backtest(
     slippage: float = 0.0,
     spread: float = 0.0,
     kelly_fraction: float = 0.5,
+    interval: str = "1d",
 ) -> dict:
     """
     Run a full backtest with trade-by-trade tracking.
@@ -172,7 +174,7 @@ def run_backtest(
     daily_returns = portfolio_series.pct_change().dropna()
     cumulative_returns = (portfolio_series / initial_capital) - 1
 
-    trade_stats = _compute_trade_stats(trades, portfolio_series, initial_capital, risk_free_rate)
+    trade_stats = _compute_trade_stats(trades, portfolio_series, initial_capital, risk_free_rate, interval)
 
     # Year-by-year return breakdown
     annual_year_ends = portfolio_series.resample("YE").last()
@@ -209,7 +211,7 @@ def _kelly_fraction(trades: list, kelly_multiplier: float = 0.5) -> float:
     return max(0.05, min(0.5, kelly * kelly_multiplier))
 
 
-def _compute_trade_stats(trades: list, portfolio: pd.Series, initial_capital: float, risk_free_rate: float = 0.0) -> dict:
+def _compute_trade_stats(trades: list, portfolio: pd.Series, initial_capital: float, risk_free_rate: float = 0.0, interval: str = "1d") -> dict:
     if not trades:
         return {
             "total_trades": 0, "winning_trades": 0, "losing_trades": 0,
@@ -240,11 +242,12 @@ def _compute_trade_stats(trades: list, portfolio: pd.Series, initial_capital: fl
         max_dd_duration = 0
 
     # Sharpe (annualized, excess return over risk-free rate)
-    daily_rf = risk_free_rate / 252
+    bpy = bars_per_year(interval)
+    bar_rf = risk_free_rate / bpy
     daily_ret = portfolio.pct_change().dropna()
     sharpe = 0.0
     if len(daily_ret) > 1 and daily_ret.std() > 0:
-        sharpe = float(((daily_ret.mean() - daily_rf) * 252) / (daily_ret.std() * np.sqrt(252)))
+        sharpe = float(((daily_ret.mean() - bar_rf) * bpy) / (daily_ret.std() * np.sqrt(bpy)))
 
     # Annualized return
     total_days = (portfolio.index[-1] - portfolio.index[0]).days

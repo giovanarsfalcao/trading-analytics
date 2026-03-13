@@ -26,6 +26,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 class ExploreRequest(BaseModel):
     ticker: str
     period: str = "2y"
+    interval: str = "1d"
     rsi_period: int = 14
     macd_fast: int = 12
     macd_slow: int = 26
@@ -41,6 +42,7 @@ class _StrategyBase(BaseModel):
     """Shared fields and validators for strategy + backtest requests."""
     ticker: str
     period: str = "2y"
+    interval: str = "1d"
     strategy_name: str
     params: dict = Field(default_factory=dict)
     model_type: str | None = None
@@ -155,6 +157,7 @@ class RiskRequest(BaseModel):
     portfolio_dates: list[str]
     benchmark_returns: list[float] = Field(default_factory=list)
     risk_free_rate: float = 0.05
+    interval: str = "1d"
 
 
 class MonteCarloRequest(BaseModel):
@@ -163,11 +166,13 @@ class MonteCarloRequest(BaseModel):
     n_simulations: int = 1000
     n_days: int = 252
     method: str = "gbm"
+    interval: str = "1d"
 
 
 class WalkForwardRequest(BaseModel):
     ticker: str
     period: str = "2y"
+    interval: str = "1d"
     model_type: str = "Random Forest"
     features: list[str] = Field(default_factory=lambda: ["RSI", "MACD_HIST", "MFI", "BB_Percent", "STOCH_K"])
     train_window: int = 504
@@ -240,15 +245,15 @@ def _serialize_indicators(df_ind: pd.DataFrame, ohlcv_cols: list[str]) -> dict:
     return result
 
 
-def _fetch_and_prepare(ticker: str, period: str):
+def _fetch_and_prepare(ticker: str, period: str, interval: str = "1d"):
     from utils.data_fetcher import fetch_price_data
     from utils.indicators import calculate_all_indicators
 
     try:
-        df = fetch_price_data(ticker, period=period)
+        df = fetch_price_data(ticker, period=period, interval=interval)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
-    df_ind = calculate_all_indicators(df)
+    df_ind = calculate_all_indicators(df, interval=interval)
     return df, df_ind
 
 
@@ -331,7 +336,7 @@ async def explore(req: ExploreRequest):
     from utils.fundamentals import fetch_fundamentals
 
     try:
-        df = fetch_price_data(req.ticker, period=req.period)
+        df = fetch_price_data(req.ticker, period=req.period, interval=req.interval)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
@@ -346,6 +351,7 @@ async def explore(req: ExploreRequest):
         sma_fast=req.sma_fast,
         sma_medium=req.sma_medium,
         sma_slow=req.sma_slow,
+        interval=req.interval,
     )
     ohlcv_cols = ["Open", "High", "Low", "Close", "Volume"]
 
@@ -365,7 +371,7 @@ async def explore(req: ExploreRequest):
 
 @app.post("/api/strategy")
 async def strategy(req: StrategyRequest):
-    df, df_ind = _fetch_and_prepare(req.ticker, req.period)
+    df, df_ind = _fetch_and_prepare(req.ticker, req.period, req.interval)
 
     try:
         signals, ml_metrics = _generate_signals(df_ind, req)
@@ -388,7 +394,7 @@ async def backtest(req: BacktestRequest):
     from utils.data_fetcher import fetch_benchmark_data
     from utils.backtester import run_backtest
 
-    df, df_ind = _fetch_and_prepare(req.ticker, req.period)
+    df, df_ind = _fetch_and_prepare(req.ticker, req.period, req.interval)
 
     try:
         if req.is_walk_forward and req.model_type:
@@ -420,6 +426,7 @@ async def backtest(req: BacktestRequest):
         slippage=req.slippage,
         spread=req.spread,
         kelly_fraction=req.kelly_fraction,
+        interval=req.interval,
     )
 
     # Serialize portfolio
@@ -490,7 +497,7 @@ async def risk(req: RiskRequest):
     )
 
     metrics = calculate_risk_metrics(
-        portfolio_returns, benchmark_returns, portfolio_prices, req.risk_free_rate,
+        portfolio_returns, benchmark_returns, portfolio_prices, req.risk_free_rate, req.interval,
     )
 
     return metrics
@@ -507,6 +514,7 @@ async def monte_carlo(req: MonteCarloRequest):
         n_simulations=req.n_simulations,
         n_days=req.n_days,
         method=req.method,
+        interval=req.interval,
     )
 
     # Downsample final values for histogram (max 500)
@@ -537,7 +545,7 @@ async def monte_carlo(req: MonteCarloRequest):
 async def walk_forward(req: WalkForwardRequest):
     from utils.strategies import walk_forward_ml_strategy, ml_strategy
 
-    df, df_ind = _fetch_and_prepare(req.ticker, req.period)
+    df, df_ind = _fetch_and_prepare(req.ticker, req.period, req.interval)
 
     try:
         features = [f for f in req.features if f in df_ind.columns] or ["RSI", "MACD_HIST", "MFI", "BB_Percent"]

@@ -33,9 +33,6 @@ const FUNDAMENTAL_FEATURES: { key: string; label: string }[] = [
   { key: "ev_to_ebitda", label: "EV/EBITDA" },
 ];
 
-const PERIOD_BARS: Record<string, number> = {
-  "6mo": 126, "1y": 252, "2y": 504, "5y": 1260, "10y": 2520,
-};
 
 interface ParamCardProps {
   label: string;
@@ -60,7 +57,7 @@ function ParamCard({ label, description, value, children }: ParamCardProps) {
 }
 
 export function StrategyForm() {
-  const { ticker, period, indicators, fundamentals, setStrategyData, clearStrategyData, setLoading, setError } = useStore();
+  const { ticker, period, interval, ohlcv, indicators, fundamentals, setStrategyData, clearStrategyData, setLoading, setError } = useStore();
   const [activeTab, setActiveTab] = useState("rule");
   const [registry, setRegistry] = useState<StrategyRegistry>({});
   const [stratName, setStratName] = useState("");
@@ -132,7 +129,7 @@ export function StrategyForm() {
     setLoading("strategy", true);
     setError(null);
     try {
-      const res = await api.strategy({ ticker, period, strategy_name: stratName, params }) as any;
+      const res = await api.strategy({ ticker, period, interval, strategy_name: stratName, params }) as any;
       setStrategyData({
         strategyName: res.strategy_name,
         strategyParams: params,
@@ -154,7 +151,7 @@ export function StrategyForm() {
       const fundamental_values = buildFundamentalValues();
       if (walkForward) {
         const res = await api.walkForward({
-          ticker, period, model_type: modelType,
+          ticker, period, interval, model_type: modelType,
           features, train_window: trainWindow, step: wfStep,
           threshold, target_shift: targetShift,
         }) as any;
@@ -168,7 +165,7 @@ export function StrategyForm() {
         });
       } else {
         const res = await api.strategy({
-          ticker, period, strategy_name: "ML", model_type: modelType,
+          ticker, period, interval, strategy_name: "ML", model_type: modelType,
           features, train_ratio: trainRatio, threshold, target_shift: targetShift,
           fundamental_values,
         }) as any;
@@ -199,9 +196,8 @@ export function StrategyForm() {
     ({ key }) => fundamentals && (fundamentals as unknown as Record<string, number | null>)[key] != null
   );
 
-  const estimatedFolds = Math.max(
-    0, Math.floor(((PERIOD_BARS[period] ?? 504) - trainWindow) / wfStep)
-  );
+  const totalBars = ohlcv.length || 504;
+  const estimatedFolds = Math.max(0, Math.floor((totalBars - trainWindow) / wfStep));
 
   const foldColor =
     estimatedFolds >= 3 ? "text-emerald-400" :
