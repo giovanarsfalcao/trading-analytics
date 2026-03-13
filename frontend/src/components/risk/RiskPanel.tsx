@@ -21,6 +21,7 @@ export function RiskPanel() {
   const [nSims, setNSims] = useState(1000);
   const [horizon, setHorizon] = useState(252);
   const [mcMethod, setMcMethod] = useState("gbm");
+  const [riskFreeRate, setRiskFreeRate] = useState(0.05);
 
   async function loadRisk() {
     setLoading("risk", true);
@@ -34,6 +35,7 @@ export function RiskPanel() {
         portfolio_values: portfolio.map((p) => p.value),
         portfolio_dates: portfolio.map((p) => p.date),
         benchmark_returns: benchReturns,
+        risk_free_rate: riskFreeRate,
       }) as any;
       setRiskData(res);
     } catch (e) {
@@ -66,6 +68,13 @@ export function RiskPanel() {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <p className="text-muted-foreground">Calculate risk metrics for your backtest results</p>
+        <div className="space-y-1 w-48">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Risk-Free Rate</span>
+            <span className="font-mono">{(riskFreeRate * 100).toFixed(1)}%</span>
+          </div>
+          <Slider min={0} max={0.1} step={0.005} value={[riskFreeRate]} onValueChange={([v]) => setRiskFreeRate(v)} />
+        </div>
         <Button onClick={loadRisk}>Calculate Risk Metrics</Button>
       </div>
     );
@@ -74,6 +83,16 @@ export function RiskPanel() {
   const m = riskMetrics;
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-end gap-4">
+        <div className="space-y-1">
+          <div className="flex justify-between text-xs text-muted-foreground gap-4">
+            <span>Risk-Free Rate</span>
+            <span className="font-mono">{(riskFreeRate * 100).toFixed(1)}%</span>
+          </div>
+          <Slider min={0} max={0.1} step={0.005} value={[riskFreeRate]} onValueChange={([v]) => setRiskFreeRate(v)} className="w-40" />
+        </div>
+        <Button size="sm" variant="outline" onClick={loadRisk}>Recalculate</Button>
+      </div>
       <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
         <KPICard label="Sharpe" value={fmt(m.sharpe_ratio)} deltaType={m.sharpe_ratio > 1 ? "positive" : m.sharpe_ratio < 0 ? "negative" : "neutral"} />
         <KPICard label="Sortino" value={fmt(m.sortino_ratio)} />
