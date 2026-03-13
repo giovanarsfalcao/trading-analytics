@@ -174,11 +174,19 @@ def run_backtest(
 
     trade_stats = _compute_trade_stats(trades, portfolio_series, initial_capital, risk_free_rate)
 
+    # Year-by-year return breakdown
+    annual_year_ends = portfolio_series.resample("YE").last()
+    annual_returns = []
+    prev = initial_capital
+    for date, val in annual_year_ends.items():
+        annual_returns.append({"year": date.year, "return": float((val / prev) - 1)})
+        prev = val
+
     return {
         "portfolio_value": portfolio_series,
         "cumulative_returns": cumulative_returns,
         "trades": trades,
-        "trade_stats": trade_stats,
+        "trade_stats": {**trade_stats, "annual_returns": annual_returns},
         "daily_returns": daily_returns,
         "initial_capital": initial_capital,
     }
