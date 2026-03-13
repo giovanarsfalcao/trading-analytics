@@ -93,20 +93,37 @@ export function RiskPanel() {
         </div>
         <Button size="sm" variant="outline" onClick={loadRisk}>Recalculate</Button>
       </div>
-      <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-        <KPICard label="Sharpe" value={fmt(m.sharpe_ratio)} deltaType={m.sharpe_ratio > 1 ? "positive" : m.sharpe_ratio < 0 ? "negative" : "neutral"} />
-        <KPICard label="Sortino" value={fmt(m.sortino_ratio)} />
-        <KPICard label="Max Drawdown" value={fmt(m.max_drawdown, { pct: true })} deltaType="negative" />
-        <KPICard label="VaR 95%" value={fmt(m.var_95, { pct: true })} />
-        <KPICard label="CVaR 95%" value={fmt(m.cvar_95, { pct: true })} />
-        <KPICard label="Calmar" value={fmt(m.calmar_ratio)} />
-      </div>
-      <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
-        <KPICard label="Ann. Return" value={fmt(m.annualized_return, { pct: true })} />
-        <KPICard label="Ann. Volatility" value={fmt(m.annualized_volatility, { pct: true })} />
-        {m.beta != null && <KPICard label="Beta" value={fmt(m.beta)} />}
-        {m.alpha != null && <KPICard label="Alpha" value={fmt(m.alpha, { pct: true })} />}
-        {m.information_ratio != null && <KPICard label="Info Ratio" value={fmt(m.information_ratio)} />}
+      <div className="space-y-5">
+        <div className="space-y-3">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Performance</p>
+          <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+            <KPICard label="Sharpe" value={fmt(m.sharpe_ratio)} deltaType={m.sharpe_ratio > 1 ? "positive" : m.sharpe_ratio < 0 ? "negative" : "neutral"} description="Return per unit of total risk. >1 good, >2 excellent." />
+            <KPICard label="Sortino" value={fmt(m.sortino_ratio)} description="Like Sharpe, but only penalizes downside volatility." />
+            <KPICard label="Calmar" value={fmt(m.calmar_ratio)} description="Ann. return divided by max drawdown. Higher = better." />
+            <KPICard label="Ann. Return" value={fmt(m.annualized_return, { pct: true })} description="Annualized portfolio return." />
+            <KPICard label="Ann. Volatility" value={fmt(m.annualized_volatility, { pct: true })} description="Annualized standard deviation of daily returns." />
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Downside Risk</p>
+          <div className="grid grid-cols-3 gap-3">
+            <KPICard label="Max Drawdown" value={fmt(m.max_drawdown, { pct: true })} deltaType="negative" description="Largest peak-to-trough loss in the period." />
+            <KPICard label="VaR 95%" value={fmt(m.var_95, { pct: true })} description="Worst daily loss expected 95% of the time." />
+            <KPICard label="CVaR 95%" value={fmt(m.cvar_95, { pct: true })} description="Average loss in the worst 5% of days (tail risk)." />
+          </div>
+        </div>
+
+        {(m.beta != null || m.alpha != null || m.information_ratio != null) && (
+          <div className="space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Benchmark Comparison</p>
+            <div className="grid grid-cols-3 gap-3">
+              {m.beta != null && <KPICard label="Beta" value={fmt(m.beta)} description="Sensitivity to benchmark moves. 1 = moves in lockstep." />}
+              {m.alpha != null && <KPICard label="Alpha" value={fmt(m.alpha, { pct: true })} description="Return above what beta exposure alone would predict." />}
+              {m.information_ratio != null && <KPICard label="Info Ratio" value={fmt(m.information_ratio)} description="Active return relative to tracking error vs benchmark." />}
+            </div>
+          </div>
+        )}
       </div>
 
       <Card>

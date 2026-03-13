@@ -393,9 +393,11 @@ async def backtest(req: BacktestRequest):
     try:
         if req.is_walk_forward and req.model_type:
             from utils.strategies import walk_forward_ml_strategy
+            raw_features = req.features or ["RSI", "MACD_HIST", "MFI", "BB_Percent"]
+            features = [f for f in raw_features if f in df_ind.columns] or ["RSI", "MACD_HIST", "MFI", "BB_Percent"]
             wf_result = walk_forward_ml_strategy(
                 df_ind,
-                features=req.features or ["RSI", "MACD_HIST", "MFI", "BB_Percent"],
+                features=features,
                 model_type=req.model_type,
                 train_window=req.train_window,
                 step=req.wf_step,
@@ -405,7 +407,7 @@ async def backtest(req: BacktestRequest):
             signals = wf_result["signals"]
         else:
             signals, _ = _generate_signals(df_ind, req)
-    except ValueError as e:
+    except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
     results = run_backtest(
@@ -538,16 +540,17 @@ async def walk_forward(req: WalkForwardRequest):
     df, df_ind = _fetch_and_prepare(req.ticker, req.period)
 
     try:
+        features = [f for f in req.features if f in df_ind.columns] or ["RSI", "MACD_HIST", "MFI", "BB_Percent"]
         result = walk_forward_ml_strategy(
             df_ind,
-            features=req.features,
+            features=features,
             model_type=req.model_type,
             train_window=req.train_window,
             step=req.step,
             threshold=req.threshold,
             target_shift=req.target_shift,
         )
-    except ValueError as e:
+    except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
     # Base model: single train/test split (80/20) for comparison with WFA
