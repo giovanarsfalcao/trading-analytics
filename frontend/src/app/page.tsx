@@ -71,7 +71,7 @@ const INDICATOR_PARAMS: Record<string, (params: IndicatorParams, set: <K extends
 };
 
 function ExploreStage() {
-  const { ticker, period, ohlcv, indicators, fundamentals, setExploreData, setLoading, setError } = useStore();
+  const { ticker, period, interval, ohlcv, indicators, fundamentals, setExploreData, setLoading, setError } = useStore();
   const [params, setParams] = useState<IndicatorParams>({
     rsi_period: 14, macd_fast: 12, macd_slow: 26, macd_signal: 9,
     bb_period: 20, bb_std: 2.0, sma_fast: 20, sma_medium: 50, sma_slow: 200,
@@ -87,10 +87,10 @@ function ExploreStage() {
     const timer = setTimeout(async () => {
       setLoading("explore", true);
       try {
-        const data = await api.explore(ticker, period, params) as {
+        const data = await api.explore(ticker, period, interval, params) as {
           ticker: string; ohlcv: []; indicators: Record<string, []>; fundamentals: null;
         };
-        setExploreData({ ticker: data.ticker, period, ohlcv: data.ohlcv, indicators: data.indicators, fundamentals: data.fundamentals });
+        setExploreData({ ticker: data.ticker, period, interval, ohlcv: data.ohlcv, indicators: data.indicators, fundamentals: data.fundamentals });
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to refresh indicators");
       } finally {
@@ -246,20 +246,64 @@ function StrategyStage() {
 
 function ConfusionMatrix({ matrix }: { matrix: number[][] }) {
   const [[tn, fp], [fn, tp]] = matrix;
-  const cells = [
-    { label: "True Negative", value: tn, color: "text-emerald-400" },
-    { label: "False Positive", value: fp, color: "text-red-400" },
-    { label: "False Negative", value: fn, color: "text-red-400" },
-    { label: "True Positive", value: tp, color: "text-emerald-400" },
-  ];
+  const total = tn + fp + fn + tp;
   return (
-    <div className="grid grid-cols-2 gap-2 max-w-xs">
-      {cells.map((c) => (
-        <div key={c.label} className="rounded-lg border border-border p-3 text-center">
-          <p className={`text-xl font-bold font-mono ${c.color}`}>{c.value}</p>
-          <p className="text-xs text-muted-foreground mt-1">{c.label}</p>
+    <div className="space-y-3">
+      <p className="text-[11px] text-muted-foreground leading-relaxed max-w-lg">
+        Shows how the model performed on the held-out test set. Rows = what actually happened,
+        columns = what the model predicted. Green cells are correct predictions, red cells are mistakes.
+      </p>
+      <div className="flex gap-4 items-start">
+        {/* Matrix */}
+        <div className="flex flex-col gap-1">
+          {/* Column headers */}
+          <div className="flex">
+            <div className="w-24" />
+            <div className="flex gap-1">
+              <div className="w-28 text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Predicted Short</div>
+              <div className="w-28 text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Predicted Long</div>
+            </div>
+          </div>
+          {/* Row: Actual Short */}
+          <div className="flex items-center gap-1">
+            <div className="w-24 text-right text-[10px] font-semibold text-muted-foreground uppercase tracking-wide pr-2">Actual Short</div>
+            <div className="w-28 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-center">
+              <p className="text-xl font-bold font-mono text-emerald-400">{tn}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">True Negative</p>
+            </div>
+            <div className="w-28 rounded-lg border border-red-500/30 bg-red-500/5 p-3 text-center">
+              <p className="text-xl font-bold font-mono text-red-400">{fp}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">False Positive</p>
+            </div>
+          </div>
+          {/* Row: Actual Long */}
+          <div className="flex items-center gap-1">
+            <div className="w-24 text-right text-[10px] font-semibold text-muted-foreground uppercase tracking-wide pr-2">Actual Long</div>
+            <div className="w-28 rounded-lg border border-red-500/30 bg-red-500/5 p-3 text-center">
+              <p className="text-xl font-bold font-mono text-red-400">{fn}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">False Negative</p>
+            </div>
+            <div className="w-28 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-center">
+              <p className="text-xl font-bold font-mono text-emerald-400">{tp}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">True Positive</p>
+            </div>
+          </div>
         </div>
-      ))}
+
+        {/* Legend */}
+        <div className="space-y-2 pt-6 text-[10px] text-muted-foreground">
+          <div><span className="text-emerald-400 font-semibold">TP</span> — correctly predicted Long (profit captured)</div>
+          <div><span className="text-emerald-400 font-semibold">TN</span> — correctly predicted Short (loss avoided)</div>
+          <div><span className="text-red-400 font-semibold">FP</span> — predicted Long, market went Short (bad trade entered)</div>
+          <div><span className="text-red-400 font-semibold">FN</span> — predicted Short, market went Long (missed opportunity)</div>
+          {total > 0 && (
+            <div className="pt-1 border-t border-border">
+              Accuracy: <span className="text-foreground font-mono">{(((tp + tn) / total) * 100).toFixed(1)}%</span>
+              {" "}({tp + tn} of {total} correct)
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
