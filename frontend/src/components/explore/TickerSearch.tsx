@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useStore } from "@/stores/store";
 import { api } from "@/lib/api";
+import { Search } from "lucide-react";
 
 const POPULAR = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "TSLA", "META", "SPY", "QQQ", "BRK-B"];
 
@@ -43,6 +44,8 @@ interface Props {
   indicatorParams: IndicatorParams;
 }
 
+type SearchResult = { symbol: string; name: string; exchange: string; type: string };
+
 export function TickerSearch({ indicatorParams }: Props) {
   const { period, interval, setExploreData, setLoading, setError } = useStore();
   const [input, setInput] = useState("");
@@ -50,6 +53,77 @@ export function TickerSearch({ indicatorParams }: Props) {
   const periodOptions = INTERVAL_PERIODS[selectedInterval] ?? INTERVAL_PERIODS["1d"];
   const defaultPeriod = periodOptions.find((p) => p.value === period) ? period : periodOptions[Math.floor(periodOptions.length / 2)].value;
   const [selectedPeriod, setSelectedPeriod] = useState(defaultPeriod);
+
+  // Autocomplete state
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [highlighted, setHighlighted] = useState(-1);
+  const [searching, setSearching] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  function handleInputChange(value: string) {
+    setInput(value);
+    setHighlighted(-1);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (value.trim().length < 1) {
+      setResults([]);
+      setShowDropdown(false);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const { results: r } = await api.search(value.trim());
+        setResults(r);
+        setShowDropdown(r.length > 0);
+      } catch {
+        setResults([]);
+        setShowDropdown(false);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+  }
+
+  function selectResult(symbol: string) {
+    setInput(symbol);
+    setShowDropdown(false);
+    setResults([]);
+    load(symbol);
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (!showDropdown || results.length === 0) {
+      if (e.key === "Enter") load(input);
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlighted((h) => (h + 1) % results.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlighted((h) => (h <= 0 ? results.length - 1 : h - 1));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (highlighted >= 0) selectResult(results[highlighted].symbol);
+      else load(input);
+      setShowDropdown(false);
+    } else if (e.key === "Escape") {
+      setShowDropdown(false);
+    }
+  }
 
   function handleIntervalChange(iv: string) {
     setSelectedInterval(iv);
@@ -86,13 +160,40 @@ export function TickerSearch({ indicatorParams }: Props) {
     <div className="space-y-3">
       {/* Ticker input row */}
       <div className="flex gap-2">
-        <Input
-          placeholder="Ticker (e.g. AAPL)"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && load(input)}
-          className="max-w-xs font-mono uppercase"
-        />
+        <div ref={wrapperRef} className="relative max-w-xs w-full">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input
+            placeholder="Ticker or company name"
+            value={input}
+            onChange={(e) => handleInputChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onFocus={() => results.length > 0 && setShowDropdown(true)}
+            className="font-mono uppercase pl-8"
+          />
+          {showDropdown && (
+            <div className="absolute z-50 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-md overflow-hidden">
+              {searching && results.length === 0 ? (
+                <div className="px-3 py-2 text-sm text-muted-foreground">Searching…</div>
+              ) : (
+                results.map((r, i) => (
+                  <button
+                    key={r.symbol}
+                    onMouseDown={() => selectResult(r.symbol)}
+                    onMouseEnter={() => setHighlighted(i)}
+                    className={[
+                      "w-full text-left px-3 py-2 flex items-center gap-2 text-sm transition-colors",
+                      i === highlighted ? "bg-muted" : "hover:bg-muted/50",
+                    ].join(" ")}
+                  >
+                    <span className="font-mono font-semibold shrink-0">{r.symbol}</span>
+                    <span className="text-muted-foreground truncate">{r.name}</span>
+                    <span className="ml-auto text-[10px] text-muted-foreground shrink-0">{r.exchange}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
         <Button onClick={() => load(input)}>Load</Button>
       </div>
 

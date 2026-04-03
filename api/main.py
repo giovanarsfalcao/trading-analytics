@@ -329,6 +329,31 @@ async def get_strategies():
     return result
 
 
+@app.get("/api/search")
+async def search_tickers(q: str = "", limit: int = 8):
+    if len(q.strip()) < 1:
+        return {"results": []}
+    try:
+        from utils import yfinance_fix
+        resp = yfinance_fix.chrome_session.get(
+            "https://query1.finance.yahoo.com/v1/finance/search",
+            params={"q": q.strip(), "quotesCount": limit, "newsCount": 0, "listsCount": 0},
+        )
+        data = resp.json()
+        results = [
+            {
+                "symbol": item.get("symbol", ""),
+                "name": item.get("shortname", item.get("longname", "")),
+                "exchange": item.get("exchange", ""),
+                "type": item.get("quoteType", ""),
+            }
+            for item in data.get("quotes", [])
+        ]
+        return {"results": results}
+    except Exception:
+        return {"results": []}
+
+
 @app.post("/api/explore")
 async def explore(req: ExploreRequest):
     from utils.data_fetcher import fetch_price_data
