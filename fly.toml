@@ -12,7 +12,7 @@ primary_region = 'gru'
   processes = ['app']
 
   [[http_service.checks]]
-    grace_period = "30s"
+    grace_period = "120s"
     interval = "30s"
     method = "GET"
     timeout = "5s"
