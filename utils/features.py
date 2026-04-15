@@ -4,7 +4,7 @@ from ta.trend import SMAIndicator, EMAIndicator, MACD
 from ta.momentum import RSIIndicator, StochRSIIndicator, StochasticOscillator
 from ta.volatility import BollingerBands, AverageTrueRange
 from ta.volume import MFIIndicator
-from utils.risk_analysis import bars_per_year
+from utils.risk import bars_per_year
 
 
 def add_sma(df: pd.DataFrame, period: int = 20) -> pd.DataFrame:

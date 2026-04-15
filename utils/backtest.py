@@ -4,7 +4,7 @@ Backtest engine with trade tracking, position sizing, and transaction cost handl
 
 import pandas as pd
 import numpy as np
-from utils.risk_analysis import bars_per_year
+from utils.risk import bars_per_year
 
 
 def run_backtest(

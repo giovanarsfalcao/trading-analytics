@@ -14,7 +14,7 @@ from sklearn.metrics import (
     accuracy_score, precision_score, recall_score,
     f1_score, roc_auc_score, confusion_matrix,
 )
-from utils.indicators import add_sma, add_rsi, add_macd, add_bollinger_bands
+from utils.features import add_sma, add_rsi, add_macd, add_bollinger_bands
 
 
 # ── Rule-Based Strategies ───────────────────────────────────────

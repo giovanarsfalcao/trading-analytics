@@ -246,8 +246,8 @@ def _serialize_indicators(df_ind: pd.DataFrame, ohlcv_cols: list[str]) -> dict:
 
 
 def _fetch_and_prepare(ticker: str, period: str, interval: str = "1d"):
-    from utils.data_fetcher import fetch_price_data
-    from utils.indicators import calculate_all_indicators
+    from utils.data import fetch_price_data
+    from utils.features import calculate_all_indicators
 
     try:
         df = fetch_price_data(ticker, period=period, interval=interval)
@@ -258,7 +258,7 @@ def _fetch_and_prepare(ticker: str, period: str, interval: str = "1d"):
 
 
 def _generate_signals(df_ind: pd.DataFrame, req):
-    from utils.strategies import STRATEGY_REGISTRY, ml_strategy
+    from utils.signals import STRATEGY_REGISTRY, ml_strategy
 
     if req.model_type:
         features = req.features or ["RSI", "MACD_HIST", "MFI", "BB_Percent", "STOCH_K"]
@@ -319,7 +319,7 @@ async def health():
 
 @app.get("/api/strategies")
 async def get_strategies():
-    from utils.strategies import STRATEGY_REGISTRY
+    from utils.signals import STRATEGY_REGISTRY
     result = {}
     for name, info in STRATEGY_REGISTRY.items():
         result[name] = {
@@ -356,9 +356,9 @@ async def search_tickers(q: str = "", limit: int = 8):
 
 @app.post("/api/explore")
 async def explore(req: ExploreRequest):
-    from utils.data_fetcher import fetch_price_data
-    from utils.indicators import calculate_all_indicators
-    from utils.fundamentals import fetch_fundamentals
+    from utils.data import fetch_price_data
+    from utils.features import calculate_all_indicators
+    from utils.data import fetch_fundamentals
 
     try:
         df = fetch_price_data(req.ticker, period=req.period, interval=req.interval)
@@ -416,14 +416,14 @@ async def strategy(req: StrategyRequest):
 
 @app.post("/api/backtest")
 async def backtest(req: BacktestRequest):
-    from utils.data_fetcher import fetch_benchmark_data
-    from utils.backtester import run_backtest
+    from utils.data import fetch_benchmark_data
+    from utils.backtest import run_backtest
 
     df, df_ind = _fetch_and_prepare(req.ticker, req.period, req.interval)
 
     try:
         if req.is_walk_forward and req.model_type:
-            from utils.strategies import walk_forward_ml_strategy
+            from utils.signals import walk_forward_ml_strategy
             raw_features = req.features or ["RSI", "MACD_HIST", "MFI", "BB_Percent"]
             features = [f for f in raw_features if f in df_ind.columns] or ["RSI", "MACD_HIST", "MFI", "BB_Percent"]
             wf_result = walk_forward_ml_strategy(
@@ -511,7 +511,7 @@ async def backtest(req: BacktestRequest):
 
 @app.post("/api/risk")
 async def risk(req: RiskRequest):
-    from utils.risk_analysis import calculate_risk_metrics
+    from utils.risk import calculate_risk_metrics
 
     portfolio_returns = pd.Series(req.daily_returns, dtype=float)
     portfolio_prices = pd.Series(req.portfolio_values, dtype=float)
@@ -530,7 +530,7 @@ async def risk(req: RiskRequest):
 
 @app.post("/api/monte-carlo")
 async def monte_carlo(req: MonteCarloRequest):
-    from utils.risk_analysis import monte_carlo_simulation
+    from utils.risk import monte_carlo_simulation
 
     returns = pd.Series(req.daily_returns, dtype=float)
 
@@ -568,7 +568,7 @@ async def monte_carlo(req: MonteCarloRequest):
 
 @app.post("/api/walk-forward")
 async def walk_forward(req: WalkForwardRequest):
-    from utils.strategies import walk_forward_ml_strategy, ml_strategy
+    from utils.signals import walk_forward_ml_strategy, ml_strategy
 
     df, df_ind = _fetch_and_prepare(req.ticker, req.period, req.interval)
 
@@ -615,8 +615,8 @@ async def walk_forward(req: WalkForwardRequest):
 
 @app.post("/api/param-sweep")
 async def param_sweep(req: ParamSweepRequest):
-    from utils.strategies import STRATEGY_REGISTRY
-    from utils.backtester import run_backtest
+    from utils.signals import STRATEGY_REGISTRY
+    from utils.backtest import run_backtest
 
     if req.strategy_name not in STRATEGY_REGISTRY:
         raise HTTPException(status_code=400, detail=f"Unknown strategy: {req.strategy_name}")
