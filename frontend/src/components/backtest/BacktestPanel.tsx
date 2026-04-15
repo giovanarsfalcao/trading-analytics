@@ -26,7 +26,7 @@ const BENCHMARKS = [
 export function BacktestPanel() {
   const store = useStore();
   const {
-    ticker, period, interval, strategyName, strategyParams,
+    ticker, period, interval, signalName, signalParams,
     tradeStats, portfolio, benchmarkPortfolio, trades,
     comparisonResults, setBacktestData, addComparison, setLoading, setError,
   } = store;
@@ -40,24 +40,22 @@ export function BacktestPanel() {
   const [benchmark, setBenchmark] = useState("^GSPC");
 
   async function run() {
-    if (!ticker || !strategyName) return;
+    if (!ticker || !signalName) return;
     setLoading("backtest", true);
     setError(null);
     try {
-      const isML = strategyName.startsWith("ML:") || strategyName.startsWith("Walk-Forward:");
-      const isWF = strategyName.startsWith("Walk-Forward:");
+      const isWF = signalName.startsWith("Walk-Forward:");
+      const sp = signalParams as Record<string, unknown>;
       const res = await api.backtest({
         ticker, period, interval,
-        strategy_name: strategyName,
-        params: isML ? {} : strategyParams as Record<string, number>,
-        model_type: isML ? (strategyParams as any).model_type : undefined,
-        features: isML ? (strategyParams as any).features : undefined,
-        train_ratio: isML && !isWF ? (strategyParams as any).train_ratio : undefined,
-        threshold: isML ? (strategyParams as any).threshold : undefined,
-        target_shift: isML ? (strategyParams as any).target_shift : undefined,
+        model_type: sp.model_type as string,
+        features: sp.features as string[] | undefined,
+        train_ratio: !isWF ? (sp.train_ratio as number | undefined) : undefined,
+        threshold: sp.threshold as number | undefined,
+        target_shift: sp.target_shift as number | undefined,
         is_walk_forward: isWF || undefined,
-        train_window: isWF ? (strategyParams as any).train_window : undefined,
-        wf_step: isWF ? (strategyParams as any).wf_step : undefined,
+        train_window: isWF ? (sp.train_window as number | undefined) : undefined,
+        wf_step: isWF ? (sp.wf_step as number | undefined) : undefined,
         initial_capital: capital,
         position_size: sizing,
         position_pct: pct,
@@ -83,9 +81,9 @@ export function BacktestPanel() {
   }
 
   function handleAddToComparison() {
-    if (!tradeStats || !portfolio || !strategyName) return;
-    const label = `${strategyName} (${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })})`;
-    addComparison({ label, strategyName, portfolio, tradeStats });
+    if (!tradeStats || !portfolio || !signalName) return;
+    const label = `${signalName} (${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })})`;
+    addComparison({ label, signalName, portfolio, tradeStats });
   }
 
   return (
@@ -190,7 +188,7 @@ export function BacktestPanel() {
           <TabsContent value="comparison">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Strategy Comparison</CardTitle>
+                <CardTitle className="text-sm">Signal Comparison</CardTitle>
               </CardHeader>
               <CardContent>
                 <ComparisonPanel />

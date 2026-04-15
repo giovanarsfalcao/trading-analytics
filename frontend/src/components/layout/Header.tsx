@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export function Header() {
-  const { ticker, strategyName, loading, error, clearSession } = useStore();
+  const { ticker, signalName, loading, error, clearSession } = useStore();
   const isLoading = Object.values(loading).some(Boolean);
 
   return (
@@ -15,9 +15,9 @@ export function Header() {
           {ticker}
         </Badge>
       )}
-      {strategyName && (
+      {signalName && (
         <Badge variant="outline" className="text-xs">
-          {strategyName}
+          {signalName}
         </Badge>
       )}
       <div className="flex-1" />

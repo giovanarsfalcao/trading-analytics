@@ -36,7 +36,7 @@ export function EquityCurve({ portfolio, benchmark }: Props) {
 
   const merged = portfolio.map((p, i) => ({
     date: p.date.split("T")[0],
-    strategy: p.cumulative_return * 100,
+    signal: p.cumulative_return * 100,
     benchmark: benchmark[i]?.cumulative_return != null ? benchmark[i].cumulative_return * 100 : undefined,
   }));
 
@@ -45,7 +45,7 @@ export function EquityCurve({ portfolio, benchmark }: Props) {
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium text-foreground">Cumulative Returns</p>
         <div className="flex items-center gap-3">
-          <span className="text-[10px] text-muted-foreground">Strategy vs. Buy &amp; Hold benchmark</span>
+          <span className="text-[10px] text-muted-foreground">Signal vs. Buy &amp; Hold benchmark</span>
           <button
             onClick={() => downloadChartAsPng(containerRef, "equity-curve.png")}
             className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded border border-border hover:bg-muted"
@@ -65,7 +65,7 @@ export function EquityCurve({ portfolio, benchmark }: Props) {
               formatter={(v) => [`${Number(v ?? 0).toFixed(2)}%`]}
               labelStyle={{ color: "#a1a1aa" }}
             />
-            <Area type="monotone" dataKey="strategy" stroke="#3b82f6" fill="rgba(59,130,246,0.08)" strokeWidth={2} name="Strategy" />
+            <Area type="monotone" dataKey="signal" stroke="#3b82f6" fill="rgba(59,130,246,0.08)" strokeWidth={2} name="Signal" />
             {benchmark.length > 0 && (
               <Area type="monotone" dataKey="benchmark" stroke="#71717a" fill="none" strokeWidth={1.5} strokeDasharray="5 5" name="Benchmark" />
             )}

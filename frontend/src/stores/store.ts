@@ -26,9 +26,9 @@ interface TradingState {
   indicators: Record<string, IndicatorPoint[]>;
   fundamentals: FundamentalsData | null;
 
-  // Stage 2
-  strategyName: string | null;
-  strategyParams: Record<string, unknown>;
+  // Stage 3 (Signals)
+  signalName: string | null;
+  signalParams: Record<string, unknown>;
   signals: SignalPoint[];
   wfBaseSignals: SignalPoint[];
   signalSummary: { buy_count: number; sell_count: number; hold_count: number; total: number } | null;
@@ -73,9 +73,9 @@ interface TradingState {
     fundamentals: FundamentalsData | null;
   }) => void;
 
-  setStrategyData: (data: {
-    strategyName: string;
-    strategyParams: Record<string, unknown>;
+  setSignalsData: (data: {
+    signalName: string;
+    signalParams: Record<string, unknown>;
     signals: SignalPoint[];
     wfBaseSignals?: SignalPoint[];
     signalSummary: { buy_count: number; sell_count: number; hold_count: number; total: number };
@@ -91,7 +91,7 @@ interface TradingState {
     dailyReturns: number[];
   }) => void;
 
-  clearStrategyData: () => void;
+  clearSignalsData: () => void;
   setRiskData: (metrics: RiskMetrics) => void;
   setMonteCarloData: (result: MonteCarloResult) => void;
   addComparison: (entry: Omit<ComparisonEntry, "id">) => void;
@@ -101,7 +101,7 @@ interface TradingState {
 
 const BLANK: Omit<TradingState, "loading" | "error" | keyof Pick<TradingState,
   "setActiveStage" | "completeStage" | "clearDownstream" | "markFeaturesVisited" | "setLoading" | "setError" | "clearSession" |
-  "setExploreData" | "setStrategyData" | "clearStrategyData" | "setBacktestData" | "setRiskData" | "setMonteCarloData" |
+  "setExploreData" | "setSignalsData" | "clearSignalsData" | "setBacktestData" | "setRiskData" | "setMonteCarloData" |
   "addComparison" | "removeComparison" | "clearComparison" | "dismissWelcome"
 >> = {
   activeStage: 1,
@@ -112,8 +112,8 @@ const BLANK: Omit<TradingState, "loading" | "error" | keyof Pick<TradingState,
   ohlcv: [],
   indicators: {},
   fundamentals: null,
-  strategyName: null,
-  strategyParams: {},
+  signalName: null,
+  signalParams: {},
   signals: [],
   wfBaseSignals: [],
   signalSummary: null,
@@ -148,7 +148,7 @@ export const useStore = create<TradingState>()(
 
       clearDownstream: (fromStage) => set((s) => {
         s.completedStages = s.completedStages.filter((n) => n < fromStage);
-        if (fromStage <= 3) { s.strategyName = null; s.signals = []; s.wfBaseSignals = []; s.signalSummary = null; s.mlMetrics = null; }
+        if (fromStage <= 3) { s.signalName = null; s.signals = []; s.wfBaseSignals = []; s.signalSummary = null; s.mlMetrics = null; }
         if (fromStage <= 4) { s.portfolio = []; s.trades = []; s.tradeStats = null; s.dailyReturns = []; s.benchmarkPortfolio = []; }
         if (fromStage <= 5) { s.riskMetrics = null; s.monteCarloResult = null; }
       }),
@@ -166,8 +166,8 @@ export const useStore = create<TradingState>()(
 
       dismissWelcome: () => set((s) => { s.welcomeDismissed = true; }),
 
-      clearStrategyData: () => set((s) => {
-        s.strategyName = null;
+      clearSignalsData: () => set((s) => {
+        s.signalName = null;
         s.signals = [];
         s.wfBaseSignals = [];
         s.signalSummary = null;
@@ -184,16 +184,16 @@ export const useStore = create<TradingState>()(
         s.fundamentals = data.fundamentals;
         if (tickerChanged) {
           s.completedStages = [];
-          s.strategyName = null; s.signals = []; s.wfBaseSignals = []; s.signalSummary = null; s.mlMetrics = null;
+          s.signalName = null; s.signals = []; s.wfBaseSignals = []; s.signalSummary = null; s.mlMetrics = null;
           s.portfolio = []; s.trades = []; s.tradeStats = null; s.dailyReturns = []; s.benchmarkPortfolio = [];
           s.riskMetrics = null; s.monteCarloResult = null;
         }
         if (!s.completedStages.includes(1)) { s.completedStages.push(1); s.completedStages.sort(); }
       }),
 
-      setStrategyData: (data) => set((s) => {
-        s.strategyName = data.strategyName;
-        s.strategyParams = data.strategyParams;
+      setSignalsData: (data) => set((s) => {
+        s.signalName = data.signalName;
+        s.signalParams = data.signalParams;
         s.signals = data.signals;
         s.wfBaseSignals = data.wfBaseSignals || [];
         s.signalSummary = data.signalSummary;
@@ -234,7 +234,7 @@ export const useStore = create<TradingState>()(
       clearComparison: () => set((s) => { s.comparisonResults = []; }),
     })),
     {
-      name: "trading-analytics-state-v2",
+      name: "trading-analytics-state-v3",
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         activeStage: state.activeStage,
@@ -245,8 +245,8 @@ export const useStore = create<TradingState>()(
         ohlcv: state.ohlcv,
         indicators: state.indicators,
         fundamentals: state.fundamentals,
-        strategyName: state.strategyName,
-        strategyParams: state.strategyParams,
+        signalName: state.signalName,
+        signalParams: state.signalParams,
         signals: state.signals,
         wfBaseSignals: state.wfBaseSignals,
         signalSummary: state.signalSummary,

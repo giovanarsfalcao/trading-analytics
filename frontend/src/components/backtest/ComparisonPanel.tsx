@@ -82,7 +82,7 @@ export function ComparisonPanel() {
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-border">
-              <th className="text-left py-2 pr-4 text-muted-foreground font-medium">Strategy</th>
+              <th className="text-left py-2 pr-4 text-muted-foreground font-medium">Signal</th>
               {METRICS.map((m) => (
                 <th key={m.key} className="text-right py-2 px-2 text-muted-foreground font-medium whitespace-nowrap">
                   {m.label}

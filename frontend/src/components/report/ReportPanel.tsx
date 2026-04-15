@@ -11,7 +11,7 @@ import { useStore } from "@/stores/store";
 import { EquityCurve } from "@/components/backtest/EquityCurve";
 
 export function ReportPanel() {
-  const { ticker, strategyName, period, tradeStats, riskMetrics, portfolio, benchmarkPortfolio, trades, completedStages } = useStore();
+  const { ticker, signalName, period, tradeStats, riskMetrics, portfolio, benchmarkPortfolio, trades, completedStages } = useStore();
   const [minSharpe, setMinSharpe] = useState(1.0);
   const [maxDD, setMaxDD] = useState(-20);
   const [minWinRate, setMinWinRate] = useState(50);
@@ -62,7 +62,7 @@ export function ReportPanel() {
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-4">
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Ticker</p><p className="text-xl font-bold font-mono">{ticker}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Strategy</p><p className="text-xl font-bold">{strategyName}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Signal</p><p className="text-xl font-bold">{signalName}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Period</p><p className="text-xl font-bold">{portfolio[0]?.date.split("T")[0]} - {portfolio[portfolio.length-1]?.date.split("T")[0]}</p></CardContent></Card>
       </div>
 
@@ -113,10 +113,10 @@ export function ReportPanel() {
       </Card>
 
       <div className="flex gap-3">
-        <Button variant="outline" onClick={() => downloadCsv(trades as any, `${ticker}_${strategyName}_trades.csv`)}>
+        <Button variant="outline" onClick={() => downloadCsv(trades as any, `${ticker}_${signalName}_trades.csv`)}>
           Download Trades CSV
         </Button>
-        <Button variant="outline" onClick={() => downloadCsv([{ ...ts, ...rm } as any], `${ticker}_${strategyName}_metrics.csv`)}>
+        <Button variant="outline" onClick={() => downloadCsv([{ ...ts, ...rm } as any], `${ticker}_${signalName}_metrics.csv`)}>
           Download Metrics CSV
         </Button>
       </div>

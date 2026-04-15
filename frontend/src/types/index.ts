@@ -108,7 +108,7 @@ export interface MonteCarloResult {
 export interface ComparisonEntry {
   id: string;
   label: string;
-  strategyName: string;
+  signalName: string;
   portfolio: PortfolioPoint[];
   tradeStats: TradeStats;
 }

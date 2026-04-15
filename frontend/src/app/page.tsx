@@ -8,11 +8,11 @@ import { CandlestickChart } from "@/components/explore/CandlestickChart";
 import { IndicatorPanel } from "@/components/explore/IndicatorPanel";
 import { FundamentalsGrid } from "@/components/explore/FundamentalsGrid";
 import { MarketStatsPanel } from "@/components/explore/MarketStatsPanel";
-import { StrategyForm } from "@/components/strategy/StrategyForm";
-import { SignalChart } from "@/components/strategy/SignalChart";
-import { FeatureImportance } from "@/components/strategy/FeatureImportance";
-import { WalkForwardComparisonChart } from "@/components/strategy/WalkForwardComparisonChart";
-import { WalkForwardTimeline } from "@/components/strategy/WalkForwardTimeline";
+import { SignalsForm } from "@/components/signals/SignalsForm";
+import { SignalChart } from "@/components/signals/SignalChart";
+import { FeatureImportance } from "@/components/signals/FeatureImportance";
+import { WalkForwardComparisonChart } from "@/components/signals/WalkForwardComparisonChart";
+import { WalkForwardTimeline } from "@/components/signals/WalkForwardTimeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BacktestPanel } from "@/components/backtest/BacktestPanel";
 import { RiskPanel } from "@/components/risk/RiskPanel";
@@ -101,7 +101,18 @@ function ExploreStage() {
     return () => clearTimeout(timer);
   }, [params]);
 
-  if (ohlcv.length === 0) return <TickerSearch indicatorParams={params} />;
+  if (ohlcv.length === 0) {
+    return (
+      <div className="space-y-6">
+        <TickerSearch indicatorParams={params} />
+        <Card>
+          <CardContent className="p-10 text-center text-sm text-muted-foreground">
+            Search for a ticker above (e.g. AAPL, NVDA, SPY) to load its price chart, indicators, and fundamentals.
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -148,13 +159,13 @@ function ExploreStage() {
   );
 }
 
-function StrategyStage() {
+function SignalsStage() {
   const { signals, wfBaseSignals, signalSummary, mlMetrics, ohlcv } = useStore();
   const ml = mlMetrics as Record<string, unknown> | null;
 
   return (
     <div className="space-y-6">
-      <StrategyForm />
+      <SignalsForm />
       {signals.length > 0 && (
         <>
           <div className="grid grid-cols-4 gap-3">
@@ -312,7 +323,7 @@ function ConfusionMatrix({ matrix }: { matrix: number[][] }) {
 const STAGES: Record<number, () => React.ReactNode> = {
   1: ExploreStage,
   2: FeaturesPanel,
-  3: StrategyStage,
+  3: SignalsStage,
   4: BacktestPanel,
   5: RiskPanel,
   6: ReportPanel,

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   BarChart3,
+  Sparkles,
   TrendingUp,
   RefreshCcw,
   ShieldAlert,
@@ -22,24 +23,30 @@ const STAGES = [
   },
   {
     number: 2,
-    name: "Strategy",
-    icon: TrendingUp,
-    description: "Apply rule-based or ML strategies to generate trade signals",
+    name: "Features",
+    icon: Sparkles,
+    description: "Engineer labels, transforms & features before model training",
   },
   {
     number: 3,
+    name: "Signals",
+    icon: TrendingUp,
+    description: "Apply supervised or unsupervised ML models to generate trade signals",
+  },
+  {
+    number: 4,
     name: "Backtest",
     icon: RefreshCcw,
     description: "Simulate historical performance with realistic position sizing",
   },
   {
-    number: 4,
+    number: 5,
     name: "Risk",
     icon: ShieldAlert,
     description: "Analyze Sharpe, VaR, drawdown & run Monte Carlo simulations",
   },
   {
-    number: 5,
+    number: 6,
     name: "Report",
     icon: FileText,
     description: "Review the full summary and export results as CSV",
@@ -83,7 +90,7 @@ export function WelcomePage() {
           From raw data to risk-adjusted insights
         </h1>
         <p className="text-lg text-muted-foreground">
-          A quantitative research platform built around a 5-stage workflow.
+          A quantitative research platform built around a 6-stage workflow.
         </p>
       </div>
 
@@ -98,7 +105,7 @@ export function WelcomePage() {
                 onMouseEnter={() => handleHover(i)}
                 onMouseLeave={handleLeave}
                 className={`
-                  w-44 cursor-default rounded-xl border p-4 transition-all duration-300
+                  w-36 cursor-default rounded-xl border p-4 transition-all duration-300
                   ${isActive
                     ? "border-primary bg-primary/5 shadow-lg shadow-primary/20"
                     : "border-border bg-card"

@@ -13,7 +13,7 @@ type Stage = {
 };
 
 const STAGES: readonly Stage[] = [
-  { id: 1, label: "Explore",  icon: BarChart3,   desc: "Price & indicators" },
+  { id: 1, label: "Explore",  icon: BarChart3,   desc: "Data Exploration" },
   { id: 2, label: "Features", icon: Sparkles,    desc: "Feature engineering" },
   { id: 3, label: "Signals",  icon: TrendingUp,  desc: "Rule & ML signals" },
   { id: 4, label: "Backtest", icon: RefreshCcw,  desc: "Trade simulation",

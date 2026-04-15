@@ -1,8 +1,7 @@
 """
-Strategy generation module.
+Signal generation module.
 
-Rule-based strategies: Pure functions (df, **params) -> pd.Series of {1, -1, 0}
-ML strategies: Train model, return signals + diagnostics.
+ML-based signals: train a classifier, return {-1, 0, 1} signals + diagnostics.
 """
 
 import pandas as pd
@@ -14,107 +13,9 @@ from sklearn.metrics import (
     accuracy_score, precision_score, recall_score,
     f1_score, roc_auc_score, confusion_matrix,
 )
-from utils.features import add_sma, add_rsi, add_macd, add_bollinger_bands
 
 
-# ── Rule-Based Strategies ───────────────────────────────────────
-
-def sma_crossover(df: pd.DataFrame, fast_period: int = 20, slow_period: int = 50) -> pd.Series:
-    """Buy when fast SMA > slow SMA, sell when below."""
-    data = add_sma(add_sma(df.copy(), fast_period), slow_period)
-    fast_col = f"SMA_{fast_period}"
-    slow_col = f"SMA_{slow_period}"
-    signal = np.where(
-        data[fast_col] > data[slow_col], 1,
-        np.where(data[fast_col] < data[slow_col], -1, 0),
-    )
-    return pd.Series(signal, index=data.index).shift(1).fillna(0).astype(int)
-
-
-def rsi_strategy(df: pd.DataFrame, period: int = 14,
-                 overbought: int = 70, oversold: int = 30) -> pd.Series:
-    """Buy below oversold, sell above overbought."""
-    data = add_rsi(df.copy(), period)
-    signal = np.where(
-        data["RSI"] < oversold, 1,
-        np.where(data["RSI"] > overbought, -1, 0),
-    )
-    return pd.Series(signal, index=data.index).shift(1).fillna(0).astype(int)
-
-
-def macd_crossover(df: pd.DataFrame, fast: int = 12, slow: int = 26,
-                   signal_period: int = 9) -> pd.Series:
-    """Buy when MACD > Signal line, sell when below."""
-    data = add_macd(df.copy(), fast, slow, signal_period)
-    signal = np.where(
-        data["MACD"] > data["MACD_Signal"], 1,
-        np.where(data["MACD"] < data["MACD_Signal"], -1, 0),
-    )
-    return pd.Series(signal, index=data.index).shift(1).fillna(0).astype(int)
-
-
-def bollinger_breakout(df: pd.DataFrame, period: int = 20, std: float = 2.0) -> pd.Series:
-    """Buy when price breaks above upper band, sell when below lower."""
-    data = add_bollinger_bands(df.copy(), period, std)
-    signal = np.where(
-        data["Close"] > data["BB_Upper"], 1,
-        np.where(data["Close"] < data["BB_Lower"], -1, 0),
-    )
-    return pd.Series(signal, index=data.index).shift(1).fillna(0).astype(int)
-
-
-def combined_strategy(signals_list: list[pd.Series], logic: str = "AND") -> pd.Series:
-    """
-    Combine multiple strategy signals.
-    AND: all must agree. OR: any triggers.
-    """
-    if not signals_list:
-        return pd.Series(dtype=int)
-    stacked = pd.concat(signals_list, axis=1)
-    if logic == "AND":
-        buy = (stacked == 1).all(axis=1)
-        sell = (stacked == -1).all(axis=1)
-    else:
-        buy = (stacked == 1).any(axis=1)
-        sell = (stacked == -1).any(axis=1)
-    return pd.Series(np.where(buy, 1, np.where(sell, -1, 0)), index=stacked.index)
-
-
-STRATEGY_REGISTRY = {
-    "SMA Crossover": {
-        "fn": sma_crossover,
-        "params": {
-            "fast_period": {"label": "Fast SMA", "min": 5, "max": 100, "default": 20},
-            "slow_period": {"label": "Slow SMA", "min": 20, "max": 300, "default": 50},
-        },
-    },
-    "RSI Overbought/Oversold": {
-        "fn": rsi_strategy,
-        "params": {
-            "period": {"label": "RSI Period", "min": 5, "max": 50, "default": 14},
-            "overbought": {"label": "Overbought", "min": 60, "max": 90, "default": 70},
-            "oversold": {"label": "Oversold", "min": 10, "max": 40, "default": 30},
-        },
-    },
-    "MACD Signal Crossover": {
-        "fn": macd_crossover,
-        "params": {
-            "fast": {"label": "Fast EMA", "min": 5, "max": 50, "default": 12},
-            "slow": {"label": "Slow EMA", "min": 10, "max": 100, "default": 26},
-            "signal_period": {"label": "Signal", "min": 3, "max": 30, "default": 9},
-        },
-    },
-    "Bollinger Band Breakout": {
-        "fn": bollinger_breakout,
-        "params": {
-            "period": {"label": "Period", "min": 5, "max": 50, "default": 20},
-            "std": {"label": "Std Dev", "min": 1.0, "max": 3.5, "default": 2.0},
-        },
-    },
-}
-
-
-# ── ML-Based Strategy ───────────────────────────────────────────
+# ── ML-Based Signals ─────────────────────────────────────────────
 
 MODEL_REGISTRY = {
     "Random Forest": RandomForestClassifier,

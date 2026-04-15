@@ -14,7 +14,7 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator
 
 # Ensure utils/ is importable
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -38,14 +38,12 @@ class ExploreRequest(BaseModel):
     sma_slow: int = 200
 
 
-class _StrategyBase(BaseModel):
-    """Shared fields and validators for strategy + backtest requests."""
+class _SignalsBase(BaseModel):
+    """Shared fields and validators for signals + backtest requests."""
     ticker: str
     period: str = "2y"
     interval: str = "1d"
-    strategy_name: str
-    params: dict = Field(default_factory=dict)
-    model_type: str | None = None
+    model_type: str
     features: list[str] | None = None
     train_ratio: float = 0.8
     threshold: float = 0.55
@@ -73,35 +71,12 @@ class _StrategyBase(BaseModel):
             raise ValueError("target_shift must be between 1 and 20")
         return v
 
-    @model_validator(mode="after")
-    def validate_strategy_params(self) -> "_StrategyBase":
-        p = self.params
-        name = self.strategy_name
 
-        if name == "SMA Crossover" and p:
-            fast = p.get("fast_period", 20)
-            slow = p.get("slow_period", 50)
-            if fast >= slow:
-                raise ValueError(
-                    f"SMA fast_period ({fast}) must be less than slow_period ({slow})"
-                )
-
-        if name == "MACD Signal Crossover" and p:
-            fast = p.get("fast", 12)
-            slow = p.get("slow", 26)
-            if fast >= slow:
-                raise ValueError(
-                    f"MACD fast ({fast}) must be less than slow ({slow})"
-                )
-
-        return self
-
-
-class StrategyRequest(_StrategyBase):
+class SignalsRequest(_SignalsBase):
     pass
 
 
-class BacktestRequest(_StrategyBase):
+class BacktestRequest(_SignalsBase):
     initial_capital: float = 10000
     position_size: str = "fixed"
     position_pct: float = 1.0
@@ -181,17 +156,6 @@ class WalkForwardRequest(BaseModel):
     target_shift: int = 1
 
 
-class ParamSweepRequest(BaseModel):
-    ticker: str
-    period: str = "2y"
-    strategy_name: str
-    param_name: str
-    param_values: list[float]
-    base_params: dict = Field(default_factory=dict)
-    initial_capital: float = 10000
-    commission: float = 0.001
-
-
 class ExportRequest(BaseModel):
     data: list[dict]
     filename: str = "export.csv"
@@ -258,38 +222,31 @@ def _fetch_and_prepare(ticker: str, period: str, interval: str = "1d"):
 
 
 def _generate_signals(df_ind: pd.DataFrame, req):
-    from utils.signals import STRATEGY_REGISTRY, ml_strategy
+    from utils.signals import ml_strategy
 
-    if req.model_type:
-        features = req.features or ["RSI", "MACD_HIST", "MFI", "BB_Percent", "STOCH_K"]
-        result = ml_strategy(
-            df_ind,
-            features=features,
-            model_type=req.model_type,
-            train_ratio=req.train_ratio,
-            threshold=req.threshold,
-            target_shift=req.target_shift,
-            fundamental_values=req.fundamental_values or None,
-        )
-        signals = result["signals"]
-        ml_metrics = {
-            "accuracy": result["accuracy"],
-            "precision": result["precision"],
-            "recall": result["recall"],
-            "f1": result["f1"],
-            "roc_auc": result["roc_auc"],
-            "train_size": result["train_size"],
-            "test_size": result["test_size"],
-            "feature_importance": result["feature_importance"],
-            "confusion_matrix": result["confusion_matrix"].tolist(),
-        }
-        return signals, ml_metrics
-
-    if req.strategy_name not in STRATEGY_REGISTRY:
-        raise HTTPException(status_code=400, detail=f"Unknown strategy: {req.strategy_name}")
-    strategy_fn = STRATEGY_REGISTRY[req.strategy_name]["fn"]
-    signals = strategy_fn(df_ind, **req.params)
-    return signals, None
+    features = req.features or ["RSI", "MACD_HIST", "MFI", "BB_Percent", "STOCH_K"]
+    result = ml_strategy(
+        df_ind,
+        features=features,
+        model_type=req.model_type,
+        train_ratio=req.train_ratio,
+        threshold=req.threshold,
+        target_shift=req.target_shift,
+        fundamental_values=req.fundamental_values or None,
+    )
+    signals = result["signals"]
+    ml_metrics = {
+        "accuracy": result["accuracy"],
+        "precision": result["precision"],
+        "recall": result["recall"],
+        "f1": result["f1"],
+        "roc_auc": result["roc_auc"],
+        "train_size": result["train_size"],
+        "test_size": result["test_size"],
+        "feature_importance": result["feature_importance"],
+        "confusion_matrix": result["confusion_matrix"].tolist(),
+    }
+    return signals, ml_metrics
 
 
 def _signal_summary(signals: pd.Series) -> dict:
@@ -315,18 +272,6 @@ def _serialize_signals(signals: pd.Series, close: pd.Series) -> list[dict]:
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
-
-
-@app.get("/api/strategies")
-async def get_strategies():
-    from utils.signals import STRATEGY_REGISTRY
-    result = {}
-    for name, info in STRATEGY_REGISTRY.items():
-        result[name] = {
-            k: {f: v for f, v in spec.items() if f != "fn"}
-            for k, spec in info["params"].items()
-        }
-    return result
 
 
 @app.get("/api/search")
@@ -394,22 +339,20 @@ async def explore(req: ExploreRequest):
     }
 
 
-@app.post("/api/strategy")
-async def strategy(req: StrategyRequest):
+@app.post("/api/signals")
+async def signals(req: SignalsRequest):
     df, df_ind = _fetch_and_prepare(req.ticker, req.period, req.interval)
 
     try:
-        signals, ml_metrics = _generate_signals(df_ind, req)
+        sig, ml_metrics = _generate_signals(df_ind, req)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    strategy_name = f"ML: {req.model_type}" if req.model_type else req.strategy_name
-
     return {
         "ticker": req.ticker,
-        "strategy_name": strategy_name,
-        "signals": _serialize_signals(signals, df["Close"]),
-        "signal_summary": _signal_summary(signals),
+        "signal_name": f"ML: {req.model_type}",
+        "signals": _serialize_signals(sig, df["Close"]),
+        "signal_summary": _signal_summary(sig),
         "ml_metrics": ml_metrics,
     }
 
@@ -495,11 +438,9 @@ async def backtest(req: BacktestRequest):
                 for idx, cr in bench_cum.items()
             ]
 
-    strategy_name = f"ML: {req.model_type}" if req.model_type else req.strategy_name
-
     return {
         "ticker": req.ticker,
-        "strategy_name": strategy_name,
+        "signal_name": f"ML: {req.model_type}",
         "initial_capital": req.initial_capital,
         "portfolio": portfolio,
         "trades": trades,
@@ -609,44 +550,8 @@ async def walk_forward(req: WalkForwardRequest):
         "signal_summary": _signal_summary(signals),
         "fold_results": result["fold_results"],
         "n_folds": result["n_folds"],
-        "strategy_name": f"Walk-Forward: {req.model_type}",
+        "signal_name": f"Walk-Forward: {req.model_type}",
     }
-
-
-@app.post("/api/param-sweep")
-async def param_sweep(req: ParamSweepRequest):
-    from utils.signals import STRATEGY_REGISTRY
-    from utils.backtest import run_backtest
-
-    if req.strategy_name not in STRATEGY_REGISTRY:
-        raise HTTPException(status_code=400, detail=f"Unknown strategy: {req.strategy_name}")
-
-    df, df_ind = _fetch_and_prepare(req.ticker, req.period)
-    strategy_fn = STRATEGY_REGISTRY[req.strategy_name]["fn"]
-
-    # Convert float params to int where appropriate (JS sends all numbers as float)
-    base = {k: int(v) if isinstance(v, float) and v == int(v) else v for k, v in req.base_params.items()}
-
-    results = []
-    for val in req.param_values:
-        clean_val = int(val) if isinstance(val, float) and val == int(val) else val
-        params = {**base, req.param_name: clean_val}
-        try:
-            signals = strategy_fn(df_ind, **params)
-            bt = run_backtest(df, signals, initial_capital=req.initial_capital, commission=req.commission)
-            stats = bt["trade_stats"]
-            results.append({
-                "param_value": val,
-                "total_return": stats.get("total_return", 0),
-                "sharpe_ratio": stats.get("sharpe_ratio", 0),
-                "max_drawdown": stats.get("max_drawdown", 0),
-                "win_rate": stats.get("win_rate", 0),
-                "total_trades": stats.get("total_trades", 0),
-            })
-        except Exception as e:
-            results.append({"param_value": val, "error": str(e)})
-
-    return {"strategy_name": req.strategy_name, "param_name": req.param_name, "results": results}
 
 
 @app.post("/api/export")

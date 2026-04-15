@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Trading Analytics",
-  description: "Quantitative research & strategy platform",
+  description: "Quantitative research & signal platform",
 };
 
 export default function RootLayout({

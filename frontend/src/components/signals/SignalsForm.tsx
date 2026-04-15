@@ -54,8 +54,8 @@ function ParamCard({ label, description, value, children }: ParamCardProps) {
   );
 }
 
-export function StrategyForm() {
-  const { ticker, period, interval, ohlcv, indicators, fundamentals, setStrategyData, clearStrategyData, setLoading, setError } = useStore();
+export function SignalsForm() {
+  const { ticker, period, interval, ohlcv, indicators, fundamentals, setSignalsData, clearSignalsData, setLoading, setError } = useStore();
   const [activeTab, setActiveTab] = useState("supervised");
 
   // ML state
@@ -89,13 +89,13 @@ export function StrategyForm() {
   }
 
   function handleTabChange(tab: string) {
-    clearStrategyData();
+    clearSignalsData();
     setActiveTab(tab);
   }
 
   async function runML() {
     if (!ticker) return;
-    setLoading("strategy", true);
+    setLoading("signals", true);
     setError(null);
     try {
       const fundamental_values = buildFundamentalValues();
@@ -105,23 +105,23 @@ export function StrategyForm() {
           features, train_window: trainWindow, step: wfStep,
           threshold, target_shift: targetShift,
         }) as any;
-        setStrategyData({
-          strategyName: res.strategy_name,
-          strategyParams: { model_type: modelType, features, threshold, target_shift: targetShift, train_window: trainWindow, wf_step: wfStep, is_walk_forward: true },
+        setSignalsData({
+          signalName: res.signal_name,
+          signalParams: { model_type: modelType, features, threshold, target_shift: targetShift, train_window: trainWindow, wf_step: wfStep, is_walk_forward: true },
           signals: res.signals,
           wfBaseSignals: res.base_signals || [],
           signalSummary: res.signal_summary,
           mlMetrics: { n_folds: res.n_folds, fold_results: res.fold_results },
         });
       } else {
-        const res = await api.strategy({
-          ticker, period, interval, strategy_name: "ML", model_type: modelType,
+        const res = await api.signals({
+          ticker, period, interval, model_type: modelType,
           features, train_ratio: trainRatio, threshold, target_shift: targetShift,
           fundamental_values,
         }) as any;
-        setStrategyData({
-          strategyName: res.strategy_name,
-          strategyParams: { model_type: modelType, features, train_ratio: trainRatio, threshold, target_shift: targetShift },
+        setSignalsData({
+          signalName: res.signal_name,
+          signalParams: { model_type: modelType, features, train_ratio: trainRatio, threshold, target_shift: targetShift },
           signals: res.signals,
           signalSummary: res.signal_summary,
           mlMetrics: res.ml_metrics,
@@ -130,7 +130,7 @@ export function StrategyForm() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "ML training failed");
     } finally {
-      setLoading("strategy", false);
+      setLoading("signals", false);
     }
   }
 
