@@ -4,6 +4,10 @@ import pandas as pd
 import yfinance as yf
 from utils import yfinance_fix
 
+# ============================================================
+# Price data (yfinance OHLCV)
+# ============================================================
+
 # TTL-based in-memory cache: key → (DataFrame, timestamp)
 _price_cache: dict[tuple, tuple[pd.DataFrame, float]] = {}
 _CACHE_TTL = 3600  # 1 hour
@@ -57,3 +61,45 @@ def fetch_benchmark_data(ticker: str = "^GSPC", period: str = "2y") -> pd.DataFr
         return fetch_price_data(ticker, period=period)
     except ValueError:
         return pd.DataFrame()
+
+
+# ============================================================
+# Fundamentals (yfinance ticker info)
+# ============================================================
+
+
+def fetch_fundamentals(ticker: str) -> dict:
+    """Fetch fundamental data for a ticker. Returns empty dict on failure."""
+    try:
+        t = yf.Ticker(ticker, session=yfinance_fix.chrome_session)
+        info = t.info
+    except Exception:
+        return {}
+
+    if not info:
+        return {}
+
+    return {
+        "name": info.get("longName", ticker),
+        "sector": info.get("sector"),
+        "industry": info.get("industry"),
+        "pe": info.get("trailingPE"),
+        "forward_pe": info.get("forwardPE"),
+        "market_cap": info.get("marketCap"),
+        "revenue": info.get("totalRevenue"),
+        "eps": info.get("trailingEps"),
+        "dividend_yield": info.get("dividendYield"),
+        "high_52w": info.get("fiftyTwoWeekHigh"),
+        "low_52w": info.get("fiftyTwoWeekLow"),
+        "beta": info.get("beta"),
+        "profit_margin": info.get("profitMargins"),
+        "roe": info.get("returnOnEquity"),
+        "roa": info.get("returnOnAssets"),
+        "debt_to_equity": info.get("debtToEquity"),
+        "revenue_growth": info.get("revenueGrowth"),
+        "gross_margins": info.get("grossMargins"),
+        "current_ratio": info.get("currentRatio"),
+        "price_to_book": info.get("priceToBook"),
+        "ev_to_ebitda": info.get("enterpriseToEbitda"),
+        "raw_info": info,
+    }
