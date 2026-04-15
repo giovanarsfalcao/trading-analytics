@@ -58,6 +58,7 @@ interface TradingState {
   setActiveStage: (stage: number) => void;
   completeStage: (stage: number) => void;
   clearDownstream: (fromStage: number) => void;
+  markFeaturesVisited: () => void;
   setLoading: (key: string, value: boolean) => void;
   setError: (error: string | null) => void;
   clearSession: () => void;
@@ -99,7 +100,7 @@ interface TradingState {
 }
 
 const BLANK: Omit<TradingState, "loading" | "error" | keyof Pick<TradingState,
-  "setActiveStage" | "completeStage" | "clearDownstream" | "setLoading" | "setError" | "clearSession" |
+  "setActiveStage" | "completeStage" | "clearDownstream" | "markFeaturesVisited" | "setLoading" | "setError" | "clearSession" |
   "setExploreData" | "setStrategyData" | "clearStrategyData" | "setBacktestData" | "setRiskData" | "setMonteCarloData" |
   "addComparison" | "removeComparison" | "clearComparison" | "dismissWelcome"
 >> = {
@@ -147,9 +148,13 @@ export const useStore = create<TradingState>()(
 
       clearDownstream: (fromStage) => set((s) => {
         s.completedStages = s.completedStages.filter((n) => n < fromStage);
-        if (fromStage <= 2) { s.strategyName = null; s.signals = []; s.wfBaseSignals = []; s.signalSummary = null; s.mlMetrics = null; }
-        if (fromStage <= 3) { s.portfolio = []; s.trades = []; s.tradeStats = null; s.dailyReturns = []; s.benchmarkPortfolio = []; }
-        if (fromStage <= 4) { s.riskMetrics = null; s.monteCarloResult = null; }
+        if (fromStage <= 3) { s.strategyName = null; s.signals = []; s.wfBaseSignals = []; s.signalSummary = null; s.mlMetrics = null; }
+        if (fromStage <= 4) { s.portfolio = []; s.trades = []; s.tradeStats = null; s.dailyReturns = []; s.benchmarkPortfolio = []; }
+        if (fromStage <= 5) { s.riskMetrics = null; s.monteCarloResult = null; }
+      }),
+
+      markFeaturesVisited: () => set((s) => {
+        if (!s.completedStages.includes(2)) { s.completedStages.push(2); s.completedStages.sort(); }
       }),
 
       setLoading: (key, value) => set((s) => { s.loading[key] = value; }),
@@ -193,10 +198,10 @@ export const useStore = create<TradingState>()(
         s.wfBaseSignals = data.wfBaseSignals || [];
         s.signalSummary = data.signalSummary;
         s.mlMetrics = data.mlMetrics || null;
-        s.completedStages = s.completedStages.filter((n) => n < 2);
+        s.completedStages = s.completedStages.filter((n) => n < 3);
         s.portfolio = []; s.trades = []; s.tradeStats = null; s.dailyReturns = []; s.benchmarkPortfolio = [];
         s.riskMetrics = null; s.monteCarloResult = null;
-        s.completedStages.push(2); s.completedStages.sort();
+        s.completedStages.push(3); s.completedStages.sort();
       }),
 
       setBacktestData: (data) => set((s) => {
@@ -206,14 +211,14 @@ export const useStore = create<TradingState>()(
         s.trades = data.trades;
         s.tradeStats = data.tradeStats;
         s.dailyReturns = data.dailyReturns;
-        s.completedStages = s.completedStages.filter((n) => n < 3);
+        s.completedStages = s.completedStages.filter((n) => n < 4);
         s.riskMetrics = null; s.monteCarloResult = null;
-        s.completedStages.push(3); s.completedStages.sort();
+        s.completedStages.push(4); s.completedStages.sort();
       }),
 
       setRiskData: (metrics) => set((s) => {
         s.riskMetrics = metrics;
-        if (!s.completedStages.includes(4)) { s.completedStages.push(4); s.completedStages.sort(); }
+        if (!s.completedStages.includes(5)) { s.completedStages.push(5); s.completedStages.sort(); }
       }),
 
       setMonteCarloData: (result) => set((s) => { s.monteCarloResult = result; }),
@@ -229,7 +234,7 @@ export const useStore = create<TradingState>()(
       clearComparison: () => set((s) => { s.comparisonResults = []; }),
     })),
     {
-      name: "trading-analytics-state",
+      name: "trading-analytics-state-v2",
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         activeStage: state.activeStage,

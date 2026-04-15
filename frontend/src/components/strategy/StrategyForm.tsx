@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
@@ -8,8 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useStore } from "@/stores/store";
 import { api } from "@/lib/api";
-import type { StrategyRegistry } from "@/types";
-import { ParamSweepPanel } from "./ParamSweepPanel";
 
 const ML_MODELS = ["Random Forest", "Gradient Boosting", "Logistic Regression"];
 const DEFAULT_FEATURES = ["RSI", "MACD_HIST", "MFI", "BB_Percent"];
@@ -58,10 +56,7 @@ function ParamCard({ label, description, value, children }: ParamCardProps) {
 
 export function StrategyForm() {
   const { ticker, period, interval, ohlcv, indicators, fundamentals, setStrategyData, clearStrategyData, setLoading, setError } = useStore();
-  const [activeTab, setActiveTab] = useState("rule");
-  const [registry, setRegistry] = useState<StrategyRegistry>({});
-  const [stratName, setStratName] = useState("");
-  const [params, setParams] = useState<Record<string, number>>({});
+  const [activeTab, setActiveTab] = useState("supervised");
 
   // ML state
   const [modelType, setModelType] = useState(ML_MODELS[0]);
@@ -72,29 +67,8 @@ export function StrategyForm() {
   const [targetShift, setTargetShift] = useState(1);
   // Walk-forward state
   const [walkForward, setWalkForward] = useState(false);
-  const [showParamSweep, setShowParamSweep] = useState(false);
   const [trainWindow, setTrainWindow] = useState(252);
   const [wfStep, setWfStep] = useState(63);
-
-  useEffect(() => {
-    api.strategies().then((r) => {
-      setRegistry(r);
-      const first = Object.keys(r)[0];
-      if (first) {
-        setStratName(first);
-        const defaults: Record<string, number> = {};
-        Object.entries(r[first]).forEach(([k, v]) => { defaults[k] = v.default; });
-        setParams(defaults);
-      }
-    });
-  }, []);
-
-  function onStrategyChange(name: string) {
-    setStratName(name);
-    const defaults: Record<string, number> = {};
-    Object.entries(registry[name] || {}).forEach(([k, v]) => { defaults[k] = v.default; });
-    setParams(defaults);
-  }
 
   function toggleFeature(f: string) {
     setFeatures((prev) => prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]);
@@ -117,30 +91,6 @@ export function StrategyForm() {
   function handleTabChange(tab: string) {
     clearStrategyData();
     setActiveTab(tab);
-  }
-
-  function handleUseBest(paramKey: string, value: number) {
-    setParams((prev) => ({ ...prev, [paramKey]: value }));
-    clearStrategyData();
-  }
-
-  async function runRuleBased() {
-    if (!ticker) return;
-    setLoading("strategy", true);
-    setError(null);
-    try {
-      const res = await api.strategy({ ticker, period, interval, strategy_name: stratName, params }) as any;
-      setStrategyData({
-        strategyName: res.strategy_name,
-        strategyParams: params,
-        signals: res.signals,
-        signalSummary: res.signal_summary,
-      });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Strategy failed");
-    } finally {
-      setLoading("strategy", false);
-    }
   }
 
   async function runML() {
@@ -212,61 +162,11 @@ export function StrategyForm() {
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
       <TabsList>
-        <TabsTrigger value="rule">Rule-Based</TabsTrigger>
-        <TabsTrigger value="ml">Machine Learning</TabsTrigger>
+        <TabsTrigger value="supervised">Supervised Learning</TabsTrigger>
+        <TabsTrigger value="unsupervised">Unsupervised Learning</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="rule" className="space-y-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm">Strategy Configuration</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Select value={stratName} onValueChange={onStrategyChange}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {Object.keys(registry).map((n) => <SelectItem key={n} value={n}>{n}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            {Object.entries(registry[stratName] || {}).map(([k, spec]) => (
-              <div key={k} className="space-y-1">
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{spec.label}</span>
-                  <span className="font-mono">{params[k]}</span>
-                </div>
-                <Slider
-                  min={spec.min} max={spec.max} step={spec.max > 10 ? 1 : 0.1}
-                  value={[params[k] ?? spec.default]}
-                  onValueChange={([v]) => setParams((p) => ({ ...p, [k]: v }))}
-                />
-              </div>
-            ))}
-            <Button onClick={runRuleBased} className="w-full">Generate Signals</Button>
-
-            {/* Parameter Sweep toggle */}
-            <div className={`rounded-lg border p-4 space-y-1 transition-colors ${showParamSweep ? "border-primary/40 bg-primary/5" : "border-border"}`}>
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-foreground">Parameter Sweep</p>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <span className="text-[10px] text-muted-foreground">{showParamSweep ? "ON" : "OFF"}</span>
-                  <input
-                    type="checkbox"
-                    checked={showParamSweep}
-                    onChange={(e) => setShowParamSweep(e.target.checked)}
-                    className="rounded"
-                  />
-                </label>
-              </div>
-              <p className="text-[10px] text-muted-foreground/70 leading-relaxed">
-                Tests a parameter across a range of values to find the best risk-adjusted result (Sharpe). Apply the best value directly to the strategy above.
-              </p>
-            </div>
-            {showParamSweep && <ParamSweepPanel onUseBest={handleUseBest} />}
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="ml" className="space-y-4">
+      <TabsContent value="supervised" className="space-y-4">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm">ML Configuration</CardTitle>
@@ -430,6 +330,17 @@ export function StrategyForm() {
             <Button onClick={runML} className="w-full">
               {walkForward ? "Run Walk-Forward" : "Train Model"}
             </Button>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="unsupervised" className="space-y-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">Unsupervised Learning</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Placeholder — clustering and regime detection will live here.
           </CardContent>
         </Card>
       </TabsContent>

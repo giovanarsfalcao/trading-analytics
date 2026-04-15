@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BacktestPanel } from "@/components/backtest/BacktestPanel";
 import { RiskPanel } from "@/components/risk/RiskPanel";
 import { ReportPanel } from "@/components/report/ReportPanel";
+import { FeaturesPanel } from "@/components/features/FeaturesPanel";
 import { KPICard, fmt } from "@/components/shared/KPICard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useStore } from "@/stores/store";
@@ -310,13 +311,14 @@ function ConfusionMatrix({ matrix }: { matrix: number[][] }) {
 
 const STAGES: Record<number, () => React.ReactNode> = {
   1: ExploreStage,
-  2: StrategyStage,
-  3: BacktestPanel,
-  4: RiskPanel,
-  5: ReportPanel,
+  2: FeaturesPanel,
+  3: StrategyStage,
+  4: BacktestPanel,
+  5: RiskPanel,
+  6: ReportPanel,
 };
 
-const STAGE_TITLES = ["", "Explore", "Strategy", "Backtest", "Risk Analysis", "Report"];
+const STAGE_TITLES = ["", "Explore", "Features", "Signals", "Backtest", "Risk Analysis", "Report"];
 
 export default function Dashboard() {
   const activeStage = useStore((s) => s.activeStage);

@@ -113,13 +113,3 @@ export interface ComparisonEntry {
   tradeStats: TradeStats;
 }
 
-export interface StrategyParam {
-  label: string;
-  min: number;
-  max: number;
-  default: number;
-}
-
-export interface StrategyRegistry {
-  [name: string]: { [param: string]: StrategyParam };
-}
