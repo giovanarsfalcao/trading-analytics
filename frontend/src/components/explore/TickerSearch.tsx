@@ -40,13 +40,18 @@ export interface IndicatorParams {
   sma_slow: number;
 }
 
+const DEFAULT_PARAMS: IndicatorParams = {
+  rsi_period: 14, macd_fast: 12, macd_slow: 26, macd_signal: 9,
+  bb_period: 20, bb_std: 2.0, sma_fast: 20, sma_medium: 50, sma_slow: 200,
+};
+
 interface Props {
-  indicatorParams: IndicatorParams;
+  indicatorParams?: IndicatorParams;
 }
 
 type SearchResult = { symbol: string; name: string; exchange: string; type: string };
 
-export function TickerSearch({ indicatorParams }: Props) {
+export function TickerSearch({ indicatorParams = DEFAULT_PARAMS }: Props) {
   const { period, interval, setExploreData, setLoading, setError } = useStore();
   const [input, setInput] = useState("");
   const [selectedInterval, setSelectedInterval] = useState(interval);

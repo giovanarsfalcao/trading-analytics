@@ -77,6 +77,17 @@ def add_market_stats(df: pd.DataFrame, volume_window: int = 20, hv_window: int =
     return df
 
 
+def add_quant_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Quant features: momentum, volatility ratio, illiquidity, autocorrelation."""
+    log_ret = np.log(df["Close"] / df["Close"].shift(1))
+    df["momentum_21d"] = df["Close"].pct_change(21)
+    df["momentum_252_21d"] = df["Close"].pct_change(252) - df["Close"].pct_change(21)
+    df["vol_ratio"] = log_ret.rolling(5).std() / log_ret.rolling(20).std()
+    df["autocorr_20"] = log_ret.rolling(20).apply(lambda x: x.autocorr(lag=1))
+    df["illiquidity"] = (log_ret.abs() / df["Volume"]).rolling(20).mean()
+    return df
+
+
 def calculate_all_indicators(
     df: pd.DataFrame,
     rsi_period: int = 14,
@@ -105,4 +116,5 @@ def calculate_all_indicators(
     result = add_mfi(result)
     result = add_vwap(result)
     result = add_market_stats(result, interval=interval)
+    result = add_quant_features(result)
     return result
