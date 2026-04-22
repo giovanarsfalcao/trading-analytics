@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Trading Analytics is a quantitative research platform with a 5-stage workflow: Explore → Strategy → Backtest → Risk Analysis → Report. Built with Next.js 16 (frontend) + FastAPI (backend) + shared Python utils for financial calculations.
+Trading Analytics is a quantitative research platform with a 6-stage workflow: Explore → Features → Signals → Backtest → Risk Analysis → Report. Built with Next.js 16 (frontend) + FastAPI (backend) + shared Python utils for financial calculations. Accompanied by a Jupyter notebook research suite under `research/`.
 
 ## Quick Start
 
@@ -25,8 +25,14 @@ App runs at `http://localhost:3000`, API at `http://localhost:8000`.
 trading-analytics/
 ├── frontend/                   # Next.js 16 (React 19, TypeScript, Tailwind, shadcn/ui)
 │   ├── src/app/                # App Router (layout.tsx, page.tsx)
-│   ├── src/components/         # React components by feature (explore/, strategy/, backtest/, risk/, report/)
-│   ├── src/stores/store.ts     # Zustand state management (5-stage workflow)
+│   ├── src/components/         # React components by feature
+│   │   ├── explore/            # TickerSearch, CandlestickChart
+│   │   ├── features/           # FeaturesPanel, PriceDerivedPanel, FeatureCard
+│   │   ├── signals/            # SignalsForm, SignalChart, WalkForward charts
+│   │   ├── backtest/           # BacktestPanel, EquityCurve, TradeTable
+│   │   ├── risk/               # RiskPanel, MonteCarloChart
+│   │   └── report/             # ReportPanel
+│   ├── src/stores/store.ts     # Zustand state management (6-stage workflow)
 │   ├── src/types/index.ts      # TypeScript type definitions
 │   ├── next.config.ts          # Standalone output + /api/* rewrite to backend
 │   └── package.json
@@ -35,13 +41,17 @@ trading-analytics/
 │   └── requirements.txt        # Python dependencies
 ├── utils/                      # Shared Python modules (used by API)
 │   ├── yfinance_fix.py         # Chrome session singleton for Yahoo Finance
-│   ├── data_fetcher.py         # yfinance data fetching with caching
-│   ├── indicators.py           # Technical indicators via 'ta' library
-│   ├── fundamentals.py         # Fundamental data via yfinance
-│   ├── strategies.py           # 4 rule-based + 3 ML strategies
-│   ├── backtester.py           # Backtest engine with position sizing
-│   └── risk_analysis.py        # Risk metrics + Monte Carlo simulation
-├── notebooks/                  # Research & development notebooks
+│   ├── data.py                 # yfinance data fetching with TTL caching
+│   ├── features.py             # Technical indicators + quant features
+│   ├── signals.py              # ML signal generation (single-split + walk-forward)
+│   ├── backtest.py             # Backtest engine with position sizing
+│   └── risk.py                 # Risk metrics + Monte Carlo simulation
+├── research/                   # Jupyter notebook research suite
+│   ├── 1_data_exploration/     # Stationarity, Brownian motion, alternative data
+│   ├── 2_features/             # Price-derived (quant + tech), fundamentals
+│   ├── 3_signal_generation/    # Feature engineering, supervised (LogReg, RF), unsupervised (HMM), walk-forward
+│   ├── 4_backtesting/          # Strategy comparison notebooks
+│   └── 5_risk_analysis/        # Risk metrics, MCMC
 ├── Dockerfile                  # Multi-stage: Next.js build + Python/Node runtime
 ├── start.sh                    # Startup: Uvicorn :8000 + Node :8080
 ├── fly.toml                    # fly.io deployment config
@@ -54,9 +64,9 @@ trading-analytics/
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/health` | Health check |
-| GET | `/api/strategies` | List available strategies |
-| POST | `/api/explore` | Fetch OHLCV, indicators, fundamentals |
-| POST | `/api/strategy` | Generate trading signals |
+| POST | `/api/explore` | Fetch OHLCV, indicators (tech + quant), fundamentals |
+| POST | `/api/signals` | Generate ML trading signals (single train/test split) |
+| POST | `/api/walk-forward` | Walk-forward ML signals (rolling window validation) |
 | POST | `/api/backtest` | Run backtest simulation |
 | POST | `/api/risk` | Calculate risk metrics |
 | POST | `/api/monte-carlo` | Run Monte Carlo simulation |
@@ -65,10 +75,19 @@ trading-analytics/
 ## Key Modules
 
 - **utils/yfinance_fix.py** - Rate limiting workaround using curl_cffi to impersonate Chrome
-- **utils/indicators.py** - SMA, EMA, RSI, MACD, Bollinger Bands, ATR, Stochastic, MFI via `ta` library
-- **utils/strategies.py** - SMA Crossover, RSI, MACD Crossover, Bollinger Breakout + Random Forest, Gradient Boosting, Logistic Regression
-- **utils/backtester.py** - Trade-by-trade engine with fixed/percentage/Kelly position sizing and commission
-- **utils/risk_analysis.py** - Sharpe, Sortino, VaR, CVaR, Beta, Alpha, Calmar, Information Ratio + Monte Carlo
+- **utils/features.py** - Technical indicators (RSI, MACD, BB, ATR, MFI, Stochastic) via `ta` library + quant features (momentum, vol_ratio, autocorrelation, illiquidity)
+- **utils/signals.py** - ML signal generation: `ml_strategy()` (single train/test split) + `walk_forward_ml_strategy()` (rolling window). Models: Random Forest, Gradient Boosting, Logistic Regression
+- **utils/backtest.py** - Trade-by-trade engine with fixed/percentage/Kelly position sizing and commission
+- **utils/risk.py** - Sharpe, Sortino, VaR, CVaR, Beta, Alpha, Calmar, Information Ratio + Monte Carlo
+
+## Frontend Stages
+
+1. **Explore** - Ticker search + candlestick price chart
+2. **Features** - 4-tab layout: Price-Derived (quant charts + tech indicators with parameter sliders), Fundamentals, Macro (placeholder), Alternative (placeholder)
+3. **Signals** - Supervised learning (model config + walk-forward toggle) + Unsupervised (placeholder). Uses all available features automatically
+4. **Backtest** - Portfolio simulation with position sizing, commission, slippage, benchmark comparison
+5. **Risk** - Risk metrics + Monte Carlo simulation
+6. **Report** - Summary, assessment, CSV export
 
 ## Deployment
 
@@ -92,7 +111,8 @@ In FastAPI endpoints, catch exceptions and return meaningful error responses wit
 ### Be careful with these fragile areas
 1. **Indicator calculations** - Math must match standard technical analysis definitions exactly.
 2. **yfinance_fix session** - All `yf.download` and `yf.Ticker` calls must use `session=yfinance_fix.chrome_session`.
-3. **Look-ahead bias** - All strategy signals must be shifted by 1 bar. ML models use temporal train/test splits (no shuffling).
+3. **Look-ahead bias** - All strategy signals must be shifted by 1 bar (`signals.shift(1)`). ML models use temporal train/test splits with boundary gap (no shuffling).
+4. **Quant features** - `add_quant_features()` in `features.py` must stay in sync with what the research notebooks compute. The 6 quant features: momentum_21d, momentum_252_21d, vol_ratio, autocorr_20, illiquidity, HV_20.
 
 ## Code Style
 
