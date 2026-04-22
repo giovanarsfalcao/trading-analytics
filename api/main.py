@@ -188,11 +188,9 @@ app.add_middleware(
 
 def _serialize_ohlcv(df: pd.DataFrame) -> list[dict]:
     out = df[["Open", "High", "Low", "Close", "Volume"]].copy()
-    out.index = out.index.strftime("%Y-%m-%dT%H:%M:%S")
-    out = out.reset_index().rename(
-        columns={"index": "date", "Open": "open", "High": "high", "Low": "low", "Close": "close", "Volume": "volume"},
-    )
-    return out.to_dict(orient="records")
+    out["date"] = out.index.strftime("%Y-%m-%dT%H:%M:%S")
+    out = out.rename(columns={"Open": "open", "High": "high", "Low": "low", "Close": "close", "Volume": "volume"})
+    return out[["date", "open", "high", "low", "close", "volume"]].to_dict(orient="records")
 
 
 def _serialize_indicators(df_ind: pd.DataFrame, ohlcv_cols: list[str]) -> dict:
