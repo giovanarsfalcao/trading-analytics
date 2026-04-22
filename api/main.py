@@ -6,6 +6,8 @@ All routes in one file. No separate schemas/routers.
 import asyncio
 import sys
 import os
+import threading
+import time as _time
 from contextlib import asynccontextmanager
 from io import StringIO
 import csv
@@ -205,9 +207,6 @@ def _serialize_indicators(df_ind: pd.DataFrame, ohlcv_cols: list[str]) -> dict:
         ]
     return result
 
-
-import threading
-import time as _time
 
 _indicator_cache: dict[tuple, tuple[pd.DataFrame, pd.DataFrame, float]] = {}
 _indicator_lock = threading.Lock()

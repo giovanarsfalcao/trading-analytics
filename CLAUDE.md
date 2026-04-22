@@ -95,7 +95,7 @@ trading-analytics/
 - **fly.io** with GitHub Actions auto-deploy on push to `main`
 - Workflow: `.github/workflows/fly-deploy.yml`
 - Requires `FLY_API_TOKEN` as GitHub Secret
-- Region: `fra` (Frankfurt), 1GB RAM, 2 shared CPUs, 2 Uvicorn workers
+- Region: `gru` (São Paulo), 1GB RAM, 2 shared CPUs, 2 Uvicorn workers
 - Frontend on port 8080, API on port 8000
 
 ## Critical Guidelines
