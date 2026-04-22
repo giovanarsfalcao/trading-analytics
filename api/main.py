@@ -3,6 +3,7 @@ Trading Analytics API — thin wrapper around utils/.
 All routes in one file. No separate schemas/routers.
 """
 
+import asyncio
 import sys
 import os
 from contextlib import asynccontextmanager
@@ -184,17 +185,12 @@ app.add_middleware(
 
 
 def _serialize_ohlcv(df: pd.DataFrame) -> list[dict]:
-    return [
-        {
-            "date": idx.isoformat(),
-            "open": float(row["Open"]),
-            "high": float(row["High"]),
-            "low": float(row["Low"]),
-            "close": float(row["Close"]),
-            "volume": float(row["Volume"]),
-        }
-        for idx, row in df.iterrows()
-    ]
+    out = df[["Open", "High", "Low", "Close", "Volume"]].copy()
+    out.index = out.index.strftime("%Y-%m-%dT%H:%M:%S")
+    out = out.reset_index().rename(
+        columns={"index": "date", "Open": "open", "High": "high", "Low": "low", "Close": "close", "Volume": "volume"},
+    )
+    return out.to_dict(orient="records")
 
 
 def _serialize_indicators(df_ind: pd.DataFrame, ohlcv_cols: list[str]) -> dict:
@@ -202,22 +198,42 @@ def _serialize_indicators(df_ind: pd.DataFrame, ohlcv_cols: list[str]) -> dict:
     result = {}
     for col in indicator_cols:
         series = df_ind[col].dropna()
+        dates = series.index.strftime("%Y-%m-%dT%H:%M:%S")
+        values = series.values.tolist()
         result[col] = [
-            {"date": idx.isoformat(), "value": float(v)}
-            for idx, v in series.items()
+            {"date": d, "value": v} for d, v in zip(dates, values)
         ]
     return result
+
+
+import threading
+import time as _time
+
+_indicator_cache: dict[tuple, tuple[pd.DataFrame, pd.DataFrame, float]] = {}
+_indicator_lock = threading.Lock()
+_INDICATOR_TTL = 3600  # 1 hour
 
 
 def _fetch_and_prepare(ticker: str, period: str, interval: str = "1d"):
     from utils.data import fetch_price_data
     from utils.features import calculate_all_indicators
 
+    key = (ticker.upper(), period, interval)
+    with _indicator_lock:
+        if key in _indicator_cache:
+            df, df_ind, ts = _indicator_cache[key]
+            if _time.time() - ts < _INDICATOR_TTL:
+                return df, df_ind
+
     try:
         df = fetch_price_data(ticker, period=period, interval=interval)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
     df_ind = calculate_all_indicators(df, interval=interval)
+
+    with _indicator_lock:
+        _indicator_cache[key] = (df, df_ind, _time.time())
+
     return df, df_ind
 
 
@@ -259,10 +275,13 @@ def _signal_summary(signals: pd.Series) -> dict:
 
 
 def _serialize_signals(signals: pd.Series, close: pd.Series) -> list[dict]:
+    common = signals.index.intersection(close.index)
+    dates = common.strftime("%Y-%m-%dT%H:%M:%S")
+    sigs = signals.loc[common].values
+    prices = close.loc[common].values
     return [
-        {"date": idx.isoformat(), "signal": int(sig), "price": float(close.loc[idx])}
-        for idx, sig in signals.items()
-        if idx in close.index
+        {"date": d, "signal": int(s), "price": float(p)}
+        for d, s, p in zip(dates, sigs, prices)
     ]
 
 
@@ -278,14 +297,15 @@ async def health():
 async def search_tickers(q: str = "", limit: int = 8):
     if len(q.strip()) < 1:
         return {"results": []}
-    try:
+
+    def _search():
         from utils import yfinance_fix
         resp = yfinance_fix.chrome_session.get(
             "https://query1.finance.yahoo.com/v1/finance/search",
             params={"q": q.strip(), "quotesCount": limit, "newsCount": 0, "listsCount": 0},
         )
         data = resp.json()
-        results = [
+        return [
             {
                 "symbol": item.get("symbol", ""),
                 "name": item.get("shortname", item.get("longname", "")),
@@ -294,6 +314,9 @@ async def search_tickers(q: str = "", limit: int = 8):
             }
             for item in data.get("quotes", [])
         ]
+
+    try:
+        results = await asyncio.to_thread(_search)
         return {"results": results}
     except Exception:
         return {"results": []}
@@ -305,253 +328,273 @@ async def explore(req: ExploreRequest):
     from utils.features import calculate_all_indicators
     from utils.data import fetch_fundamentals
 
-    try:
-        df = fetch_price_data(req.ticker, period=req.period, interval=req.interval)
-    except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+    def _explore():
+        try:
+            df = fetch_price_data(req.ticker, period=req.period, interval=req.interval)
+        except ValueError as e:
+            raise HTTPException(status_code=422, detail=str(e))
 
-    df_ind = calculate_all_indicators(
-        df,
-        rsi_period=req.rsi_period,
-        macd_fast=req.macd_fast,
-        macd_slow=req.macd_slow,
-        macd_signal=req.macd_signal,
-        bb_period=req.bb_period,
-        bb_std=req.bb_std,
-        sma_fast=req.sma_fast,
-        sma_medium=req.sma_medium,
-        sma_slow=req.sma_slow,
-        interval=req.interval,
-    )
-    ohlcv_cols = ["Open", "High", "Low", "Close", "Volume"]
+        df_ind = calculate_all_indicators(
+            df,
+            rsi_period=req.rsi_period,
+            macd_fast=req.macd_fast,
+            macd_slow=req.macd_slow,
+            macd_signal=req.macd_signal,
+            bb_period=req.bb_period,
+            bb_std=req.bb_std,
+            sma_fast=req.sma_fast,
+            sma_medium=req.sma_medium,
+            sma_slow=req.sma_slow,
+            interval=req.interval,
+        )
+        ohlcv_cols = ["Open", "High", "Low", "Close", "Volume"]
 
-    fundamentals = fetch_fundamentals(req.ticker)
-    if "raw_info" in fundamentals:
-        del fundamentals["raw_info"]
+        fundamentals = fetch_fundamentals(req.ticker)
+        if "raw_info" in fundamentals:
+            del fundamentals["raw_info"]
 
-    return {
-        "ticker": req.ticker,
-        "data_points": len(df),
-        "date_range": [df.index[0].isoformat(), df.index[-1].isoformat()],
-        "ohlcv": _serialize_ohlcv(df),
-        "indicators": _serialize_indicators(df_ind, ohlcv_cols),
-        "fundamentals": fundamentals or None,
-    }
+        return {
+            "ticker": req.ticker,
+            "data_points": len(df),
+            "date_range": [df.index[0].isoformat(), df.index[-1].isoformat()],
+            "ohlcv": _serialize_ohlcv(df),
+            "indicators": _serialize_indicators(df_ind, ohlcv_cols),
+            "fundamentals": fundamentals or None,
+        }
+
+    return await asyncio.to_thread(_explore)
 
 
 @app.post("/api/signals")
 async def signals(req: SignalsRequest):
-    df, df_ind = _fetch_and_prepare(req.ticker, req.period, req.interval)
+    def _run():
+        df, df_ind = _fetch_and_prepare(req.ticker, req.period, req.interval)
+        try:
+            sig, ml_metrics = _generate_signals(df_ind, req)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        return {
+            "ticker": req.ticker,
+            "signal_name": f"ML: {req.model_type}",
+            "signals": _serialize_signals(sig, df["Close"]),
+            "signal_summary": _signal_summary(sig),
+            "ml_metrics": ml_metrics,
+        }
 
-    try:
-        sig, ml_metrics = _generate_signals(df_ind, req)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-    return {
-        "ticker": req.ticker,
-        "signal_name": f"ML: {req.model_type}",
-        "signals": _serialize_signals(sig, df["Close"]),
-        "signal_summary": _signal_summary(sig),
-        "ml_metrics": ml_metrics,
-    }
+    return await asyncio.to_thread(_run)
 
 
 @app.post("/api/backtest")
 async def backtest(req: BacktestRequest):
-    from utils.data import fetch_benchmark_data
-    from utils.backtest import run_backtest
+    def _run():
+        from utils.data import fetch_benchmark_data
+        from utils.backtest import run_backtest
 
-    df, df_ind = _fetch_and_prepare(req.ticker, req.period, req.interval)
+        df, df_ind = _fetch_and_prepare(req.ticker, req.period, req.interval)
 
-    try:
-        if req.is_walk_forward and req.model_type:
-            from utils.signals import walk_forward_ml_strategy
-            raw_features = req.features or ["RSI", "MACD_HIST", "MFI", "BB_Percent"]
-            features = [f for f in raw_features if f in df_ind.columns] or ["RSI", "MACD_HIST", "MFI", "BB_Percent"]
-            wf_result = walk_forward_ml_strategy(
-                df_ind,
-                features=features,
-                model_type=req.model_type,
-                train_window=req.train_window,
-                step=req.wf_step,
-                threshold=req.threshold or 0.55,
-                target_shift=req.target_shift or 1,
+        try:
+            if req.is_walk_forward and req.model_type:
+                from utils.signals import walk_forward_ml_strategy
+                raw_features = req.features or ["RSI", "MACD_HIST", "MFI", "BB_Percent"]
+                features = [f for f in raw_features if f in df_ind.columns] or ["RSI", "MACD_HIST", "MFI", "BB_Percent"]
+                wf_result = walk_forward_ml_strategy(
+                    df_ind,
+                    features=features,
+                    model_type=req.model_type,
+                    train_window=req.train_window,
+                    step=req.wf_step,
+                    threshold=req.threshold or 0.55,
+                    target_shift=req.target_shift or 1,
+                )
+                sigs = wf_result["signals"]
+            else:
+                sigs, _ = _generate_signals(df_ind, req)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+        results = run_backtest(
+            df, sigs,
+            initial_capital=req.initial_capital,
+            position_size=req.position_size,
+            position_pct=req.position_pct,
+            commission=req.commission,
+            risk_free_rate=req.risk_free_rate,
+            slippage=req.slippage,
+            spread=req.spread,
+            kelly_fraction=req.kelly_fraction,
+            interval=req.interval,
+        )
+
+        # Serialize portfolio (vectorized)
+        pv = results["portfolio_value"]
+        cr = results["cumulative_returns"]
+        portfolio = [
+            {"date": d, "value": v, "cumulative_return": c}
+            for d, v, c in zip(
+                pv.index.strftime("%Y-%m-%dT%H:%M:%S"),
+                pv.values.tolist(),
+                cr.values.tolist(),
             )
-            signals = wf_result["signals"]
-        else:
-            signals, _ = _generate_signals(df_ind, req)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        ]
 
-    results = run_backtest(
-        df, signals,
-        initial_capital=req.initial_capital,
-        position_size=req.position_size,
-        position_pct=req.position_pct,
-        commission=req.commission,
-        risk_free_rate=req.risk_free_rate,
-        slippage=req.slippage,
-        spread=req.spread,
-        kelly_fraction=req.kelly_fraction,
-        interval=req.interval,
-    )
+        # Serialize trades
+        trades = []
+        for t in results["trades"]:
+            trades.append({
+                "entry_date": t["entry_date"].isoformat() if hasattr(t["entry_date"], "isoformat") else str(t["entry_date"]),
+                "exit_date": t["exit_date"].isoformat() if hasattr(t["exit_date"], "isoformat") else str(t["exit_date"]),
+                "direction": t["direction"],
+                "entry_price": float(t["entry_price"]),
+                "exit_price": float(t["exit_price"]),
+                "shares": float(t["shares"]),
+                "return_pct": float(t["return_pct"]),
+                "holding_days": int(t["holding_days"]),
+                "pnl": float(t["pnl"]),
+                "commission_entry": float(t["commission_entry"]),
+                "commission_exit": float(t["commission_exit"]),
+            })
 
-    # Serialize portfolio
-    portfolio = [
-        {
-            "date": idx.isoformat(),
-            "value": float(val),
-            "cumulative_return": float(results["cumulative_returns"].loc[idx]),
+        # Benchmark
+        benchmark_portfolio = None
+        bench_df = fetch_benchmark_data(ticker=req.benchmark, period=req.period)
+        if not bench_df.empty:
+            bench_close = bench_df["Close"]
+            mask = (bench_close.index >= df.index[0]) & (bench_close.index <= df.index[-1])
+            bench_aligned = bench_close.loc[mask]
+            if len(bench_aligned) > 0:
+                bench_cum = (bench_aligned / bench_aligned.iloc[0]) - 1
+                benchmark_portfolio = [
+                    {"date": d, "value": float(v), "cumulative_return": float(c)}
+                    for d, v, c in zip(
+                        bench_cum.index.strftime("%Y-%m-%dT%H:%M:%S"),
+                        bench_aligned.values.tolist(),
+                        bench_cum.values.tolist(),
+                    )
+                ]
+
+        return {
+            "ticker": req.ticker,
+            "signal_name": f"ML: {req.model_type}",
+            "initial_capital": req.initial_capital,
+            "portfolio": portfolio,
+            "trades": trades,
+            "trade_stats": results["trade_stats"],
+            "daily_returns": results["daily_returns"].tolist(),
+            "benchmark_portfolio": benchmark_portfolio,
         }
-        for idx, val in results["portfolio_value"].items()
-    ]
 
-    # Serialize trades
-    trades = []
-    for t in results["trades"]:
-        trades.append({
-            "entry_date": t["entry_date"].isoformat() if hasattr(t["entry_date"], "isoformat") else str(t["entry_date"]),
-            "exit_date": t["exit_date"].isoformat() if hasattr(t["exit_date"], "isoformat") else str(t["exit_date"]),
-            "direction": t["direction"],
-            "entry_price": float(t["entry_price"]),
-            "exit_price": float(t["exit_price"]),
-            "shares": float(t["shares"]),
-            "return_pct": float(t["return_pct"]),
-            "holding_days": int(t["holding_days"]),
-            "pnl": float(t["pnl"]),
-            "commission_entry": float(t["commission_entry"]),
-            "commission_exit": float(t["commission_exit"]),
-        })
-
-    # Benchmark
-    benchmark_portfolio = None
-    bench_df = fetch_benchmark_data(ticker=req.benchmark, period=req.period)
-    if not bench_df.empty:
-        bench_close = bench_df["Close"]
-        mask = (bench_close.index >= df.index[0]) & (bench_close.index <= df.index[-1])
-        bench_aligned = bench_close.loc[mask]
-        if len(bench_aligned) > 0:
-            bench_cum = (bench_aligned / bench_aligned.iloc[0]) - 1
-            benchmark_portfolio = [
-                {"date": idx.isoformat(), "value": float(bench_aligned.loc[idx]), "cumulative_return": float(cr)}
-                for idx, cr in bench_cum.items()
-            ]
-
-    return {
-        "ticker": req.ticker,
-        "signal_name": f"ML: {req.model_type}",
-        "initial_capital": req.initial_capital,
-        "portfolio": portfolio,
-        "trades": trades,
-        "trade_stats": results["trade_stats"],
-        "daily_returns": results["daily_returns"].tolist(),
-        "benchmark_portfolio": benchmark_portfolio,
-    }
+    return await asyncio.to_thread(_run)
 
 
 @app.post("/api/risk")
 async def risk(req: RiskRequest):
-    from utils.risk import calculate_risk_metrics
+    def _run():
+        from utils.risk import calculate_risk_metrics
 
-    portfolio_returns = pd.Series(req.daily_returns, dtype=float)
-    portfolio_prices = pd.Series(req.portfolio_values, dtype=float)
-    benchmark_returns = (
-        pd.Series(req.benchmark_returns, dtype=float)
-        if req.benchmark_returns
-        else pd.Series(dtype=float)
-    )
+        portfolio_returns = pd.Series(req.daily_returns, dtype=float)
+        portfolio_prices = pd.Series(req.portfolio_values, dtype=float)
+        benchmark_returns = (
+            pd.Series(req.benchmark_returns, dtype=float)
+            if req.benchmark_returns
+            else pd.Series(dtype=float)
+        )
 
-    metrics = calculate_risk_metrics(
-        portfolio_returns, benchmark_returns, portfolio_prices, req.risk_free_rate, req.interval,
-    )
+        return calculate_risk_metrics(
+            portfolio_returns, benchmark_returns, portfolio_prices, req.risk_free_rate, req.interval,
+        )
 
-    return metrics
+    return await asyncio.to_thread(_run)
 
 
 @app.post("/api/monte-carlo")
 async def monte_carlo(req: MonteCarloRequest):
-    from utils.risk import monte_carlo_simulation
+    def _run():
+        from utils.risk import monte_carlo_simulation
 
-    returns = pd.Series(req.daily_returns, dtype=float)
+        returns = pd.Series(req.daily_returns, dtype=float)
 
-    mc = monte_carlo_simulation(
-        returns, req.initial_capital,
-        n_simulations=req.n_simulations,
-        n_days=req.n_days,
-        method=req.method,
-        interval=req.interval,
-    )
+        mc = monte_carlo_simulation(
+            returns, req.initial_capital,
+            n_simulations=req.n_simulations,
+            n_days=req.n_days,
+            method=req.method,
+            interval=req.interval,
+        )
 
-    # Downsample final values for histogram (max 500)
-    final_vals = mc["final_values"].tolist()
-    if len(final_vals) > 500:
-        rng = np.random.default_rng(42)
-        final_vals = rng.choice(mc["final_values"], size=500, replace=False).tolist()
+        # Downsample final values for histogram (max 500)
+        final_vals = mc["final_values"].tolist()
+        if len(final_vals) > 500:
+            rng = np.random.default_rng(42)
+            final_vals = rng.choice(mc["final_values"], size=500, replace=False).tolist()
 
-    percentiles = [
-        {"level": float(level), "values": [float(v) for v in values]}
-        for level, values in mc["percentiles"].items()
-    ]
+        percentiles = [
+            {"level": float(level), "values": [float(v) for v in values]}
+            for level, values in mc["percentiles"].items()
+        ]
 
-    return {
-        "percentiles": percentiles,
-        "median_path": [float(v) for v in mc["median_path"]],
-        "probability_of_loss": mc["probability_of_loss"],
-        "expected_value": mc["expected_value"],
-        "median_value": mc["median_value"],
-        "best_case": mc["best_case"],
-        "worst_case": mc["worst_case"],
-        "final_values_histogram": [float(v) for v in final_vals],
-        "max_drawdown_distribution": mc["max_drawdown_distribution"],
-    }
+        return {
+            "percentiles": percentiles,
+            "median_path": [float(v) for v in mc["median_path"]],
+            "probability_of_loss": mc["probability_of_loss"],
+            "expected_value": mc["expected_value"],
+            "median_value": mc["median_value"],
+            "best_case": mc["best_case"],
+            "worst_case": mc["worst_case"],
+            "final_values_histogram": [float(v) for v in final_vals],
+            "max_drawdown_distribution": mc["max_drawdown_distribution"],
+        }
+
+    return await asyncio.to_thread(_run)
 
 
 @app.post("/api/walk-forward")
 async def walk_forward(req: WalkForwardRequest):
-    from utils.signals import walk_forward_ml_strategy, ml_strategy
+    def _run():
+        from utils.signals import walk_forward_ml_strategy, ml_strategy
 
-    df, df_ind = _fetch_and_prepare(req.ticker, req.period, req.interval)
+        df, df_ind = _fetch_and_prepare(req.ticker, req.period, req.interval)
 
-    try:
-        features = [f for f in req.features if f in df_ind.columns] or ["RSI", "MACD_HIST", "MFI", "BB_Percent"]
-        result = walk_forward_ml_strategy(
-            df_ind,
-            features=features,
-            model_type=req.model_type,
-            train_window=req.train_window,
-            step=req.step,
-            threshold=req.threshold,
-            target_shift=req.target_shift,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        try:
+            features = [f for f in req.features if f in df_ind.columns] or ["RSI", "MACD_HIST", "MFI", "BB_Percent"]
+            result = walk_forward_ml_strategy(
+                df_ind,
+                features=features,
+                model_type=req.model_type,
+                train_window=req.train_window,
+                step=req.step,
+                threshold=req.threshold,
+                target_shift=req.target_shift,
+            )
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
 
-    # Base model: single train/test split (80/20) for comparison with WFA
-    base_signals_serialized = []
-    try:
-        base_result = ml_strategy(
-            df_ind,
-            features=req.features,
-            model_type=req.model_type,
-            train_ratio=0.8,
-            threshold=req.threshold,
-            target_shift=req.target_shift,
-        )
-        base_signals_serialized = _serialize_signals(base_result["signals"], df["Close"])
-    except Exception:
-        pass
+        # Base model: single train/test split (80/20) for comparison with WFA
+        base_signals_serialized = []
+        try:
+            base_result = ml_strategy(
+                df_ind,
+                features=req.features,
+                model_type=req.model_type,
+                train_ratio=0.8,
+                threshold=req.threshold,
+                target_shift=req.target_shift,
+            )
+            base_signals_serialized = _serialize_signals(base_result["signals"], df["Close"])
+        except Exception:
+            pass
 
-    signals = result["signals"]
-    serialized = _serialize_signals(signals, df["Close"])
-    return {
-        "signals": serialized,
-        "base_signals": base_signals_serialized,
-        "signal_summary": _signal_summary(signals),
-        "fold_results": result["fold_results"],
-        "n_folds": result["n_folds"],
-        "signal_name": f"Walk-Forward: {req.model_type}",
-    }
+        sigs = result["signals"]
+        serialized = _serialize_signals(sigs, df["Close"])
+        return {
+            "signals": serialized,
+            "base_signals": base_signals_serialized,
+            "signal_summary": _signal_summary(sigs),
+            "fold_results": result["fold_results"],
+            "n_folds": result["n_folds"],
+            "signal_name": f"Walk-Forward: {req.model_type}",
+        }
+
+    return await asyncio.to_thread(_run)
 
 
 @app.post("/api/export")

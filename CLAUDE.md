@@ -64,6 +64,7 @@ trading-analytics/
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/health` | Health check |
+| GET | `/api/search` | Ticker search (Yahoo Finance) |
 | POST | `/api/explore` | Fetch OHLCV, indicators (tech + quant), fundamentals |
 | POST | `/api/signals` | Generate ML trading signals (single train/test split) |
 | POST | `/api/walk-forward` | Walk-forward ML signals (rolling window validation) |
@@ -94,7 +95,7 @@ trading-analytics/
 - **fly.io** with GitHub Actions auto-deploy on push to `main`
 - Workflow: `.github/workflows/fly-deploy.yml`
 - Requires `FLY_API_TOKEN` as GitHub Secret
-- Region: `gru` (São Paulo), 1GB RAM, shared CPU
+- Region: `fra` (Frankfurt), 1GB RAM, 2 shared CPUs, 2 Uvicorn workers
 - Frontend on port 8080, API on port 8000
 
 ## Critical Guidelines

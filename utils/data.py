@@ -1,3 +1,4 @@
+import threading
 import time
 
 import pandas as pd
@@ -10,6 +11,7 @@ from utils import yfinance_fix
 
 # TTL-based in-memory cache: key → (DataFrame, timestamp)
 _price_cache: dict[tuple, tuple[pd.DataFrame, float]] = {}
+_price_lock = threading.Lock()
 _CACHE_TTL = 3600  # 1 hour
 
 
@@ -19,10 +21,11 @@ def fetch_price_data(ticker: str, period: str = "2y", interval: str = "1d") -> p
     Raises ValueError with a descriptive message on failure.
     """
     key = (ticker.upper(), period, interval)
-    if key in _price_cache:
-        df, ts = _price_cache[key]
-        if time.time() - ts < _CACHE_TTL:
-            return df
+    with _price_lock:
+        if key in _price_cache:
+            df, ts = _price_cache[key]
+            if time.time() - ts < _CACHE_TTL:
+                return df
 
     try:
         df = yf.download(
@@ -51,7 +54,8 @@ def fetch_price_data(ticker: str, period: str = "2y", interval: str = "1d") -> p
     df = df.sort_index()
     df = df[~df.index.duplicated(keep="first")]
 
-    _price_cache[key] = (df, time.time())
+    with _price_lock:
+        _price_cache[key] = (df, time.time())
     return df
 
 
@@ -67,9 +71,20 @@ def fetch_benchmark_data(ticker: str = "^GSPC", period: str = "2y") -> pd.DataFr
 # Fundamentals (yfinance ticker info)
 # ============================================================
 
+_fundamentals_cache: dict[str, tuple[dict, float]] = {}
+_fundamentals_lock = threading.Lock()
+_FUNDAMENTALS_TTL = 86400  # 24h — fundamentals change rarely
+
 
 def fetch_fundamentals(ticker: str) -> dict:
     """Fetch fundamental data for a ticker. Returns empty dict on failure."""
+    key = ticker.upper()
+    with _fundamentals_lock:
+        if key in _fundamentals_cache:
+            data, ts = _fundamentals_cache[key]
+            if time.time() - ts < _FUNDAMENTALS_TTL:
+                return data
+
     try:
         t = yf.Ticker(ticker, session=yfinance_fix.chrome_session)
         info = t.info
@@ -79,7 +94,7 @@ def fetch_fundamentals(ticker: str) -> dict:
     if not info:
         return {}
 
-    return {
+    result = {
         "name": info.get("longName", ticker),
         "sector": info.get("sector"),
         "industry": info.get("industry"),
@@ -103,3 +118,8 @@ def fetch_fundamentals(ticker: str) -> dict:
         "ev_to_ebitda": info.get("enterpriseToEbitda"),
         "raw_info": info,
     }
+
+    with _fundamentals_lock:
+        _fundamentals_cache[key] = (result, time.time())
+
+    return result

@@ -36,3 +36,7 @@ tradbot.db
 # Environment
 .env
 .env.local
+
+# venv artifacts
+pyvenv.cfg
+share/
