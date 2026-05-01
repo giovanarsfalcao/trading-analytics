@@ -48,8 +48,8 @@ Jupyter notebook suite under `research/` covering:
 
 ```bash
 # Backend
-pip install -r api/requirements.txt
-uvicorn api.main:app --reload --port 8000
+pip install -r backend/requirements.txt
+uvicorn backend.main:app --reload --port 8000
 
 # Frontend (separate terminal)
 cd frontend

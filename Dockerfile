@@ -18,12 +18,11 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Python deps
-COPY api/requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Backend code
-COPY api/ ./api/
-COPY utils/ ./utils/
+COPY backend/ ./backend/
 
 # Built frontend (standalone)
 COPY --from=frontend /app/frontend/.next/standalone ./frontend/

@@ -19,8 +19,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
-# Ensure utils/ is importable
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+# Ensure utils/ is importable from backend/
+sys.path.insert(0, os.path.dirname(__file__))
 
 
 # ── Pydantic Models ──────────────────────────────────────────────

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Start backend first and wait for it to be ready
-cd /app && uvicorn api.main:app --host 0.0.0.0 --port 8000 --workers 2 &
+cd /app && uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 2 &
 
 echo "Waiting for backend..."
 until curl -sf http://localhost:8000/api/health > /dev/null 2>&1; do

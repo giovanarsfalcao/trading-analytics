@@ -8,8 +8,8 @@ Trading Analytics is a quantitative research platform with a 6-stage workflow: E
 
 ```bash
 # Backend
-pip install -r api/requirements.txt
-uvicorn api.main:app --reload --port 8000
+pip install -r backend/requirements.txt
+uvicorn backend.main:app --reload --port 8000
 
 # Frontend (separate terminal)
 cd frontend
@@ -36,16 +36,16 @@ trading-analytics/
 │   ├── src/types/index.ts      # TypeScript type definitions
 │   ├── next.config.ts          # Standalone output + /api/* rewrite to backend
 │   └── package.json
-├── api/
+├── backend/
 │   ├── main.py                 # FastAPI app with all routes
-│   └── requirements.txt        # Python dependencies
-├── utils/                      # Shared Python modules (used by API)
-│   ├── yfinance_fix.py         # Chrome session singleton for Yahoo Finance
-│   ├── data.py                 # yfinance data fetching with TTL caching
-│   ├── features.py             # Technical indicators + quant features
-│   ├── signals.py              # ML signal generation (single-split + walk-forward)
-│   ├── backtest.py             # Backtest engine with position sizing
-│   └── risk.py                 # Risk metrics + Monte Carlo simulation
+│   ├── requirements.txt        # Python dependencies
+│   └── utils/                  # Shared Python modules
+│       ├── yfinance_fix.py     # Chrome session singleton for Yahoo Finance
+│       ├── data.py             # yfinance data fetching with TTL caching
+│       ├── features.py         # Technical indicators + quant features
+│       ├── signals.py          # ML signal generation (single-split + walk-forward)
+│       ├── backtest.py         # Backtest engine with position sizing
+│       └── risk.py             # Risk metrics + Monte Carlo simulation
 ├── research/                   # Jupyter notebook research suite
 │   ├── 1_data_exploration/     # Stationarity, Brownian motion, alternative data
 │   ├── 2_features/             # Price-derived (quant + tech), fundamentals
@@ -75,11 +75,11 @@ trading-analytics/
 
 ## Key Modules
 
-- **utils/yfinance_fix.py** - Rate limiting workaround using curl_cffi to impersonate Chrome
-- **utils/features.py** - Technical indicators (RSI, MACD, BB, ATR, MFI, Stochastic) via `ta` library + quant features (momentum, vol_ratio, autocorrelation, illiquidity)
-- **utils/signals.py** - ML signal generation: `ml_strategy()` (single train/test split) + `walk_forward_ml_strategy()` (rolling window). Models: Random Forest, Gradient Boosting, Logistic Regression
-- **utils/backtest.py** - Trade-by-trade engine with fixed/percentage/Kelly position sizing and commission
-- **utils/risk.py** - Sharpe, Sortino, VaR, CVaR, Beta, Alpha, Calmar, Information Ratio + Monte Carlo
+- **backend/utils/yfinance_fix.py** - Rate limiting workaround using curl_cffi to impersonate Chrome
+- **backend/utils/features.py** - Technical indicators (RSI, MACD, BB, ATR, MFI, Stochastic) via `ta` library + quant features (momentum, vol_ratio, autocorrelation, illiquidity)
+- **backend/utils/signals.py** - ML signal generation: `ml_strategy()` (single train/test split) + `walk_forward_ml_strategy()` (rolling window). Models: Random Forest, Gradient Boosting, Logistic Regression
+- **backend/utils/backtest.py** - Trade-by-trade engine with fixed/percentage/Kelly position sizing and commission
+- **backend/utils/risk.py** - Sharpe, Sortino, VaR, CVaR, Beta, Alpha, Calmar, Information Ratio + Monte Carlo
 
 ## Frontend Stages
 
@@ -101,7 +101,7 @@ trading-analytics/
 ## Critical Guidelines
 
 ### DO NOT break the yfinance fix
-`utils/yfinance_fix.py` is critical for data fetching. It uses `curl_cffi` with Chrome impersonation to bypass Yahoo Finance rate limiting. Never modify this without understanding the session/cookie handling.
+`backend/utils/yfinance_fix.py` is critical for data fetching. It uses `curl_cffi` with Chrome impersonation to bypass Yahoo Finance rate limiting. Never modify this without understanding the session/cookie handling.
 
 ### Ask before implementing new features
 Discuss the approach before writing code for new functionality. Don't assume an implementation path.
@@ -113,7 +113,7 @@ In FastAPI endpoints, catch exceptions and return meaningful error responses wit
 1. **Indicator calculations** - Math must match standard technical analysis definitions exactly.
 2. **yfinance_fix session** - All `yf.download` and `yf.Ticker` calls must use `session=yfinance_fix.chrome_session`.
 3. **Look-ahead bias** - All strategy signals must be shifted by 1 bar (`signals.shift(1)`). ML models use temporal train/test splits with boundary gap (no shuffling).
-4. **Quant features** - `add_quant_features()` in `features.py` must stay in sync with what the research notebooks compute. The 6 quant features: momentum_21d, momentum_252_21d, vol_ratio, autocorr_20, illiquidity, HV_20.
+4. **Quant features** - `add_quant_features()` in `backend/utils/features.py` must stay in sync with what the research notebooks compute. The 6 quant features: momentum_21d, momentum_252_21d, vol_ratio, autocorr_20, illiquidity, HV_20.
 
 ## Code Style
 

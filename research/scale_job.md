@@ -59,7 +59,7 @@ Erweiterung des bestehenden Trading-Analytics-Projekts (Next.js 16 + FastAPI + P
 - **Test:** Funktion mit AAPL-Daten aufrufen, Output validieren
 
 ### Schritt 1.2 — Market Structure API
-> `api/main.py` ändern
+> `backend/main.py` ändern
 
 - `MarketStructureRequest` Pydantic Model hinzufügen
 - `POST /api/market-structure` Endpoint: Daten fetchen → market_structure Funktionen aufrufen → JSON Response
@@ -93,7 +93,7 @@ Erweiterung des bestehenden Trading-Analytics-Projekts (Next.js 16 + FastAPI + P
 - **Test:** Simulation auf AAPL 1-Minute-Daten → PnL-Kurve plotten im Notebook
 
 ### Schritt 1.6 — Avellaneda-Stoikov: API
-> `api/main.py` ändern
+> `backend/main.py` ändern
 
 - `MarketMakingRequest` Pydantic Model (ticker, period, interval, gamma, kappa, max_inventory, session_bars)
 - `POST /api/market-making` Endpoint
@@ -135,11 +135,11 @@ Erweiterung des bestehenden Trading-Analytics-Projekts (Next.js 16 + FastAPI + P
 - **Test:** Split auf 2 Jahre AAPL daily → Fold-Grenzen + Purge-Zonen visualisieren
 
 ### Schritt 1.11 — LightGBM Integration
-> `utils/strategies.py` ändern + `api/requirements.txt` ändern
+> `utils/strategies.py` ändern + `backend/requirements.txt` ändern
 
-- `api/requirements.txt` — `lightgbm>=4.0.0` hinzufügen
+- `backend/requirements.txt` — `lightgbm>=4.0.0` hinzufügen
 - `utils/strategies.py` — LightGBM in `MODEL_REGISTRY`, `purged_kfold_ml_strategy()` Funktion, `cv_method` Parameter
-- `api/main.py` — Strategy/Walk-Forward Endpoints um `cv_method` erweitern
+- `backend/main.py` — Strategy/Walk-Forward Endpoints um `cv_method` erweitern
 - **Test:** `POST /api/strategy` mit model="LightGBM", cv_method="purged_kfold" → Accuracy, F1, Fold-Results
 
 ### Schritt 1.12 — LightGBM + Purged CV Frontend
@@ -159,8 +159,8 @@ Erweiterung des bestehenden Trading-Analytics-Projekts (Next.js 16 + FastAPI + P
 - `write_risk_metrics(ticker, metrics)` — Risk-Daten schreiben
 - `query_performance_history(ticker, time_range)` — Historische Runs abfragen
 - Gated hinter `INFLUXDB_URL` Env-Var (No-Op wenn nicht gesetzt)
-- `api/main.py` ändern — nach Backtest/Risk optional InfluxDB-Write
-- `api/requirements.txt` — `influxdb-client>=1.36.0`
+- `backend/main.py` ändern — nach Backtest/Risk optional InfluxDB-Write
+- `backend/requirements.txt` — `influxdb-client>=1.36.0`
 - **Test:** Lokaler InfluxDB-Container → Backtest → Daten in InfluxDB verifizieren
 
 ### Schritt 1.14 — Docker-Compose + Grafana
@@ -172,7 +172,7 @@ Erweiterung des bestehenden Trading-Analytics-Projekts (Next.js 16 + FastAPI + P
 - **Test:** `docker-compose up` → Backtest laufen → Grafana Dashboard zeigt Daten
 
 ### Schritt 1.15 — SQL Trade-Logging (PostgreSQL/SQLite)
-> `utils/trade_db.py` erstellen + `api/main.py` ändern
+> `utils/trade_db.py` erstellen + `backend/main.py` ändern
 
 - `utils/trade_db.py` — `TradeDatabase` Klasse:
   - SQLite lokal / PostgreSQL in Produktion (via `DATABASE_URL` Env-Var)
@@ -181,8 +181,8 @@ Erweiterung des bestehenden Trading-Analytics-Projekts (Next.js 16 + FastAPI + P
   - `query_trades(ticker, strategy, date_range) -> DataFrame` — SQL-Queries für Analyse
   - `get_strategy_performance(strategy) -> DataFrame` — Aggregierte Performance über alle Runs
   - Raw SQL für komplexe Queries (JOINs, GROUP BY, Window Functions) — zeigt SQL-Kompetenz
-- `api/main.py` ändern — nach Backtest optional in DB loggen (gated hinter `DATABASE_URL`)
-- `api/requirements.txt` — `sqlalchemy>=2.0.0`, `aiosqlite>=0.19.0`
+- `backend/main.py` ändern — nach Backtest optional in DB loggen (gated hinter `DATABASE_URL`)
+- `backend/requirements.txt` — `sqlalchemy>=2.0.0`, `aiosqlite>=0.19.0`
 - **Test:** Backtest laufen → Trades in SQLite → `query_trades()` gibt DataFrame zurück
 
 ### Schritt 1.16 — Real-Time Data Stream (Kafka + WebSocket)
@@ -192,14 +192,14 @@ Erweiterung des bestehenden Trading-Analytics-Projekts (Next.js 16 + FastAPI + P
   - `KafkaProducer`: Liest Live-Preise (yfinance Real-Time oder WebSocket von Exchange-API) → schreibt in Kafka Topic `prices.{ticker}`
   - `KafkaConsumer`: Liest aus Kafka Topic → liefert an API
   - Fallback: wenn kein Kafka → direkt yfinance polling (5s Intervall)
-- `api/main.py` — Neuer Endpoint:
+- `backend/main.py` — Neuer Endpoint:
   - `GET /api/live/{ticker}` — WebSocket-Endpoint: streamt Live-Preis-Updates ans Frontend
   - `POST /api/live/start` — Startet Live-Feed für einen Ticker
   - `POST /api/live/stop` — Stoppt Live-Feed
 - `frontend/src/components/explore/LivePriceChart.tsx` erstellen — Echtzeit-Candlestick-Chart via WebSocket (lightweight-charts, bereits als Dependency vorhanden)
 - `frontend/src/app/page.tsx` ändern — "Live" Tab im Explore-Stage
 - `infra/docker-compose.yml` ändern — Kafka + Zookeeper Services hinzufügen
-- `api/requirements.txt` — `confluent-kafka>=2.3.0`, `websockets>=12.0`
+- `backend/requirements.txt` — `confluent-kafka>=2.3.0`, `websockets>=12.0`
 - **Test:** `docker-compose up` → Live-Feed starten → Frontend zeigt Live-Kerzen → Kafka UI zeigt Messages
 
 ### Schritt 1.17 — Automated Test Suite (pytest)
@@ -214,7 +214,7 @@ Erweiterung des bestehenden Trading-Analytics-Projekts (Next.js 16 + FastAPI + P
 - `tests/test_order_flow.py` — Tests für OFI, VIR (buy_vol + sell_vol = total_vol)
 - `tests/test_purged_cv.py` — Tests: keine Überlappung Train/Test, Embargo korrekt
 - `tests/test_api.py` — Integration Tests für alle API-Endpoints (FastAPI TestClient)
-- `api/requirements.txt` — `pytest>=8.0.0`, `pytest-asyncio>=0.23.0`, `httpx>=0.27.0`
+- `backend/requirements.txt` — `pytest>=8.0.0`, `pytest-asyncio>=0.23.0`, `httpx>=0.27.0`
 - `.github/workflows/fly-deploy.yml` ändern — `pytest` vor Deploy ausführen (CI fails → kein Deploy)
 - **Test:** `pytest tests/ -v` → alle Tests grün → GitHub Actions Pipeline grün
 
@@ -241,7 +241,7 @@ Erweiterung des bestehenden Trading-Analytics-Projekts (Next.js 16 + FastAPI + P
   - Edges: agent → tools (wenn Tool-Aufruf nötig) | agent → respond (wenn Antwort bereit)
   - Conditional routing basierend auf LLM-Output
 - `utils/agent/prompts.py` — System-Prompt: Finance-Analyst mit Tool-Zugang, injizierter App-Context
-- `api/requirements.txt` — `langchain>=0.3.0`, `langgraph>=0.2.0`, `langchain-anthropic>=0.3.0`
+- `backend/requirements.txt` — `langchain>=0.3.0`, `langgraph>=0.2.0`, `langchain-anthropic>=0.3.0`
 - **Test:** Agent initialisieren → einfache Frage ohne Tools → Antwort kommt zurück
 
 ### Schritt 2.2 — Agent Tools: Trading-Aktionen
@@ -274,7 +274,7 @@ Der Agent bekommt Tools um eigenständig mit der App zu interagieren:
 - **Test:** Mehrstufige Frage → Agent plant Schritte → führt Tools sequenziell aus → synthetisiert finale Antwort
 
 ### Schritt 2.4 — Agent API + Streaming
-> `api/main.py` ändern
+> `backend/main.py` ändern
 
 - `POST /api/agent/chat` — `AgentChatRequest(messages, state_snapshot)`:
   - Baut `AgentState` aus Frontend State-Snapshot
@@ -334,13 +334,13 @@ Der Agent bekommt Tools um eigenständig mit der App zu interagieren:
 - `create_retriever(collection, k=5)` — LangChain Retriever-Interface
 - `build_rag_context(query, collection) -> str` — Retrieved Chunks als Context
 - `summarize_document(collection, query) -> str` — LangChain Summarization Chain für 10-K Abschnitte
-- `api/requirements.txt` — `sentence-transformers>=2.2.0`, `chromadb>=0.4.0`, `pypdf>=3.0.0`, `langchain-community>=0.3.0`
+- `backend/requirements.txt` — `sentence-transformers>=2.2.0`, `chromadb>=0.4.0`, `pypdf>=3.0.0`, `langchain-community>=0.3.0`
 - **Test:** AAPL 10-K hochladen → "What are the risk factors?" → relevante Chunks + Summary
 
 ### Schritt 2.9 — RAG: API + Agent-Integration
-> `api/main.py` ändern + `utils/agent/tools.py` erweitern
+> `backend/main.py` ändern + `utils/agent/tools.py` erweitern
 
-- `api/main.py` — Neue Endpoints:
+- `backend/main.py` — Neue Endpoints:
   - `POST /api/documents/upload` — PDF → Chunk → Embed → ChromaDB
   - `GET /api/documents` — Liste hochgeladener Dokumente
   - `DELETE /api/documents/{id}` — Dokument löschen
@@ -377,8 +377,8 @@ Misst Reasoning-Qualität, Reliabilität und Konsistenz des Agents (direkt aus J
     - "multi_step": Mehrstufige Analyse-Aufgaben
     - "rag_qa": Dokument-basierte Fragen
     - "edge_cases": Fehlende Daten, ungültige Ticker, etc.
-- `api/main.py` — `POST /api/agent/evaluate` Endpoint
-- `api/requirements.txt` — `ragas>=0.1.0`
+- `backend/main.py` — `POST /api/agent/evaluate` Endpoint
+- `backend/requirements.txt` — `ragas>=0.1.0`
 - **Test:** Benchmark-Suite laufen lassen → Report mit Scores pro Kategorie
 
 ### Schritt 2.12 — Hybrid Search (OpenSearch)
@@ -390,7 +390,7 @@ Misst Reasoning-Qualität, Reliabilität und Konsistenz des Agents (direkt aus J
   - `hybrid_search(query, n=10, alpha=0.7)` — Gewichtete Kombination
   - Fallback auf ChromaDB wenn kein OpenSearch
 - `utils/rag.py` ändern — `create_retriever()` nutzt HybridSearcher wenn OpenSearch verfügbar
-- `api/requirements.txt` — `opensearch-py>=2.4.0`
+- `backend/requirements.txt` — `opensearch-py>=2.4.0`
 - `infra/docker-compose.yml` ändern — OpenSearch Service hinzufügen
 - **Test:** Hybrid vs. Pure Vector → Hybrid liefert bessere Results bei Keyword-lastigen Queries
 
@@ -398,7 +398,7 @@ Misst Reasoning-Qualität, Reliabilität und Konsistenz des Agents (direkt aus J
 > Finale Integration
 
 - `Dockerfile` ändern — ChromaDB-Persistenz, sentence-transformers Model-Cache, LangGraph Dependencies
-- `api/main.py` — `ANTHROPIC_API_KEY` Env-Var Handling
+- `backend/main.py` — `ANTHROPIC_API_KEY` Env-Var Handling
 - Agent-UX polieren: Error States, Tool-Call Timeouts, Loading States, leerer State
 - **Test:** E2E: Explore → Backtest → Chat → Agent nutzt Tools → PDF Upload → RAG-Frage → Agent-Eval → alles funktioniert
 
