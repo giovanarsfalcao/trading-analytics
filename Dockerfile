@@ -10,6 +10,7 @@ RUN npm run build
 # Stage 2: Production
 FROM python:3.11-slim
 WORKDIR /app
+RUN mkdir -p /app/data
 
 RUN apt-get update && apt-get install -y \
     build-essential curl \

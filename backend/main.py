@@ -170,6 +170,8 @@ class ExportRequest(BaseModel):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from utils import yfinance_fix  # noqa: F401 — triggers patch + session creation
+    from utils import cache
+    cache.ensure_schema()
     yield
 
 
@@ -206,31 +208,45 @@ def _serialize_indicators(df_ind: pd.DataFrame, ohlcv_cols: list[str]) -> dict:
     return result
 
 
-_indicator_cache: dict[tuple, tuple[pd.DataFrame, pd.DataFrame, float]] = {}
+# Keyed by (ticker, period, interval, sorted-indicator-params-tuple).
+# Params are always merged with defaults before hashing so that a call with
+# explicit defaults and a call with no kwargs produce the same cache key.
+# df is NOT cached — SQLite reads are fast enough.
+_indicator_cache: dict[tuple, tuple[pd.DataFrame, float]] = {}
 _indicator_lock = threading.Lock()
 _INDICATOR_TTL = 3600  # 1 hour
+
+_INDICATOR_DEFAULTS = {
+    "rsi_period": 14, "macd_fast": 12, "macd_slow": 26, "macd_signal": 9,
+    "bb_period": 20, "bb_std": 2.0, "sma_fast": 20, "sma_medium": 50, "sma_slow": 200,
+}
+
+
+def _get_or_compute_indicators(
+    df: pd.DataFrame, ticker: str, period: str, interval: str, **params
+) -> pd.DataFrame:
+    from utils.features import calculate_all_indicators
+
+    full_params = {**_INDICATOR_DEFAULTS, **params}
+    cache_key = (ticker.upper(), period, interval, tuple(sorted(full_params.items())))
+    with _indicator_lock:
+        hit = _indicator_cache.get(cache_key)
+        if hit and _time.time() - hit[1] < _INDICATOR_TTL:
+            return hit[0]
+    df_ind = calculate_all_indicators(df, interval=interval, **full_params)
+    with _indicator_lock:
+        _indicator_cache[cache_key] = (df_ind, _time.time())
+    return df_ind
 
 
 def _fetch_and_prepare(ticker: str, period: str, interval: str = "1d"):
     from utils.data import fetch_price_data
-    from utils.features import calculate_all_indicators
-
-    key = (ticker.upper(), period, interval)
-    with _indicator_lock:
-        if key in _indicator_cache:
-            df, df_ind, ts = _indicator_cache[key]
-            if _time.time() - ts < _INDICATOR_TTL:
-                return df, df_ind
 
     try:
         df = fetch_price_data(ticker, period=period, interval=interval)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
-    df_ind = calculate_all_indicators(df, interval=interval)
-
-    with _indicator_lock:
-        _indicator_cache[key] = (df, df_ind, _time.time())
-
+    df_ind = _get_or_compute_indicators(df, ticker, period, interval)
     return df, df_ind
 
 
@@ -321,9 +337,7 @@ async def search_tickers(q: str = "", limit: int = 8):
 
 @app.post("/api/explore")
 async def explore(req: ExploreRequest):
-    from utils.data import fetch_price_data
-    from utils.features import calculate_all_indicators
-    from utils.data import fetch_fundamentals
+    from utils.data import fetch_price_data, fetch_fundamentals
 
     def _explore():
         try:
@@ -331,8 +345,8 @@ async def explore(req: ExploreRequest):
         except ValueError as e:
             raise HTTPException(status_code=422, detail=str(e))
 
-        df_ind = calculate_all_indicators(
-            df,
+        df_ind = _get_or_compute_indicators(
+            df, req.ticker, req.period, req.interval,
             rsi_period=req.rsi_period,
             macd_fast=req.macd_fast,
             macd_slow=req.macd_slow,
@@ -342,7 +356,6 @@ async def explore(req: ExploreRequest):
             sma_fast=req.sma_fast,
             sma_medium=req.sma_medium,
             sma_slow=req.sma_slow,
-            interval=req.interval,
         )
         ohlcv_cols = ["Open", "High", "Low", "Close", "Volume"]
 
